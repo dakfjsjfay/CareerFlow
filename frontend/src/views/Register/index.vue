@@ -1,3 +1,14 @@
+<script setup lang="ts">
+import { reactive } from 'vue'
+
+// 注册表单状态（D2 接入 /api/auth/register 时使用）
+const form = reactive({
+  username: '',
+  email: '',
+  password: '',
+})
+</script>
+
 <template>
   <div class="auth-page">
     <el-card class="auth-card">
@@ -8,13 +19,13 @@
       <h2>注册</h2>
       <el-form label-position="top">
         <el-form-item label="用户名">
-          <el-input placeholder="3~50 个字符" />
+          <el-input v-model="form.username" placeholder="3~50 个字符" />
         </el-form-item>
         <el-form-item label="邮箱">
-          <el-input placeholder="选填" />
+          <el-input v-model="form.email" placeholder="选填" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input type="password" placeholder="至少 8 个字符" show-password />
+          <el-input v-model="form.password" type="password" placeholder="至少 8 个字符" show-password />
         </el-form-item>
         <el-button type="primary" class="auth-btn">注册（D2 接入）</el-button>
       </el-form>

@@ -1,3 +1,13 @@
+<script setup lang="ts">
+import { reactive } from 'vue'
+
+// 登录表单状态（D2 接入 /api/auth/login 时使用）
+const form = reactive({
+  username: '',
+  password: '',
+})
+</script>
+
 <template>
   <div class="auth-page">
     <el-card class="auth-card">
@@ -8,10 +18,10 @@
       <h2>登录</h2>
       <el-form label-position="top">
         <el-form-item label="用户名">
-          <el-input placeholder="请输入用户名" />
+          <el-input v-model="form.username" placeholder="请输入用户名" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input type="password" placeholder="请输入密码" show-password />
+          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
         </el-form-item>
         <el-button type="primary" class="auth-btn">登录（D2 接入）</el-button>
       </el-form>
