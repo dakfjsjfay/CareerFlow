@@ -1,0 +1,29 @@
+/* CareerFlow-AI 蓝白色 SaaS 设计变量 */
+:root {
+  --cf-primary: #2563eb;
+  --cf-primary-light: #3b82f6;
+  --cf-primary-dark: #1d4ed8;
+  --cf-bg: #f5f7fb;
+  --cf-text: #1f2937;
+  --cf-text-secondary: #6b7280;
+  --cf-card-bg: #ffffff;
+  --cf-border: #e5e7eb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--cf-bg);
+  color: var(--cf-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
