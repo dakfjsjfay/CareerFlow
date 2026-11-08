@@ -30,3 +30,7 @@ ai:
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     api-key: ${DEEPSEEK_API_KEY:}
     model: ${DEEPSEEK_MODEL:deepseek-v4-pro}
+
+# JWT 签名密钥（开发默认值仅本地使用；生产必须通过环境变量覆盖）
+jwt:
+  secret: ${JWT_SECRET:careerflow-dev-secret-key-please-change-in-production-2026}
