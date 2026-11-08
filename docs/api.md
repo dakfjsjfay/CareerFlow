@@ -1,0 +1,514 @@
+# API 接口契约：CareerFlow-AI 智能求职助手
+
+> 版本：v1.1（2026-11-08）｜已按第二轮架构审查修订
+> ⚠️ 本文件是前后端协作的唯一依据。**开始开发后不得随意改字段**；必须修改时先改本文件并同步通知前后端。
+
+## 1. 统一约定
+
+| 项 | 约定 |
+|---|---|
+| 前缀 | 所有接口 /api 开头 |
+| 请求格式 | application/json，UTF-8 |
+| 认证 | Bearer Token（除 register/login/health 外均需；Spring Security + JWT） |
+| URL | 全小写，资源用复数 |
+| 参数命名 | **camelCase**（数据库为 snake_case，转换由 MyBatis-Plus 映射） |
+| 时间 | ISO 8601（如 2026-11-08T10:00:00+08:00）；日期 yyyy-MM-dd |
+| 分页 | 请求 page、size；返回 items、total、page、size |
+| 空值 | 明确使用 null 或空数组，不省略字段 |
+| AI 输出 | 结构化 JSON，后端结构校验 + 事实校验 |
+| 数据归属 | 所有业务接口必须校验当前用户归属（见 database.md §8），不满足 → 403 |
+
+## 2. 统一返回格式
+
+成功：
+
+```json
+{ "code": 200, "message": "success", "data": {} }
+```
+
+失败：
+
+```json
+{ "code": 400, "message": "参数错误", "data": null }
+```
+
+**HTTP 状态码与返回体 code 不要混用**，业务错误也应使用正确 HTTP 状态码：
+
+| HTTP | 含义 | 典型场景 |
+|---|---|---|
+| 200 | 成功 | |
+| 400 | 参数错误 | 字段缺失/格式非法/枚举值非法 |
+| 401 | 未登录或 Token 失效 | |
+| 403 | 无权限 | 访问他人数据、越权操作 |
+| 404 | 资源不存在 | 记录不存在 |
+| 409 | 业务状态冲突 | 用户名重复、非法状态流转、证据已处理 |
+| 500 | 服务端错误 | |
+| 502 | AI 服务调用失败 | 超时/重试后仍失败 |
+
+## 3. 健康检查
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/health | GET | 服务状态（免认证） |
+
+## 4. 认证（auth）
+
+| 接口 | 方法 | 说明 | 校验与错误 |
+|---|---|---|---|
+| /api/auth/register | POST | 注册 | username 3~50 字符必填；password ≥8 字符必填；用户名已存在 → 409 |
+| /api/auth/login | POST | 登录 | 用户名或密码错误 → 401 |
+| /api/auth/me | GET | 当前用户信息 | Token 失效 → 401 |
+
+注册：
+
+```json
+{ "username": "student01", "password": "Password123", "email": "student@example.com" }
+```
+
+登录返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": { "token": "jwt-token", "user": { "id": 1, "username": "student01" } }
+}
+```
+
+## 5. AI 对话（chat）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/chat/sessions | POST | 创建会话 |
+| /api/chat/sessions | GET | 会话列表 |
+| /api/chat/sessions/{id}/messages | GET | 历史消息（session 归属校验） |
+| /api/chat/send | POST | 发送消息（后端组织多轮上下文调用 AI） |
+
+发送消息：
+
+```json
+{ "sessionId": 1001, "message": "我是计算机专业大二学生，学习了Java，做过学生管理系统。" }
+```
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "sessionId": 1001,
+    "reply": "你的学生管理系统使用了什么技术实现数据存储？",
+    "extractedInfo": {
+      "major": "计算机相关专业",
+      "grade": "大二",
+      "skills": ["Java"],
+      "projects": [{ "name": "学生管理系统", "techStack": ["Java"] }]
+    },
+    "missingFields": ["项目开发时间", "个人负责模块", "项目数据存储方式"]
+  }
+}
+```
+
+校验与错误：sessionId 不属于当前用户 → 403；message 空 → 400；AI 失败 → 502（不落库）。
+
+### 5.1 AI 抽取候选信息的确认流程（二轮审查明确）
+
+**抽取结果不等于档案数据。** 完整流程：
+
+```
+用户消息 → AI 抽取 → 后端创建 profile_evidence（PENDING，实体表不写入）
+→ 前端展示「待确认」信息 → 用户确认/拒绝（POST /api/profile/evidence/confirm）
+→ CONFIRMED：写入档案实体表；REJECTED：不写入，标记拒绝
+```
+
+- **自动确认规则**：基础信息与教育经历字段（姓名、学校、专业等）信息明确时，可抽取后直接 CONFIRMED 并写入；技能、项目、工作/实习经历**必须用户确认**（涉及归因风险，如「学过 MySQL」≠「项目用了 MySQL」）
+- 用户拒绝的信息标记 REJECTED，**不允许进入已确认档案，也不允许出现在简历中**
+- 简历生成只使用「已确认且有证据」的信息
+
+## 6. 个人档案（profile）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/profile | GET | 获取档案（仅含已确认数据；待确认项走 evidence 接口） |
+| /api/profile | PUT | 更新档案（手动编辑，写 evidence source_type=MANUAL 且 CONFIRMED） |
+| /api/profile/projects | POST / PUT / DELETE /{id} | 项目经历增改删（归属校验） |
+| /api/profile/experiences | POST / PUT / DELETE /{id} | 工作/实习经历增改删（归属校验） |
+| /api/profile/evidence | GET | ⭐ 证据列表（query: status=PENDING/CONFIRMED/REJECTED，默认 PENDING） |
+| /api/profile/evidence/confirm | POST | ⭐ 确认/拒绝抽取信息（二轮审查新增） |
+| /api/profile/completeness | GET | 完整度（Java 计算 6 维度，见 database.md §6） |
+
+### 6.1 确认接口
+
+请求：
+
+```json
+{ "evidenceIds": [101, 102], "confirmed": true }
+```
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "confirmedCount": 2,
+    "updatedFields": ["skills", "project.tech_stack"]
+  }
+}
+```
+
+行为与校验：
+- 逐条校验证据归属当前用户（不归属 → 403；不存在 → 404；已处理 → 409 并返回其当前状态）
+- `confirmed=true`：evidence → CONFIRMED，按 entity_type/field_name 映射写入档案实体表（PROFILE→user_profile；SKILL→user_profile.skills；PROJECT/EXPERIENCE→对应实体表，entity_id 为 NULL 时创建实体并回填）
+- `confirmed=false`：evidence → REJECTED，不写入任何档案数据
+
+完整度返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "overall": 75,
+    "dimensions": [
+      { "name": "基础信息", "score": 100 },
+      { "name": "教育经历", "score": 80 },
+      { "name": "技能信息", "score": 70 },
+      { "name": "项目经历", "score": 50 },
+      { "name": "工作/实习经历", "score": 50 },
+      { "name": "求职意向", "score": 100 }
+    ]
+  }
+}
+```
+
+## 7. 简历（resumes）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/resumes | POST | 创建简历主体 |
+| /api/resumes | GET | 简历列表（含 currentVersionId） |
+| /api/resumes/{id} | GET | 简历详情（含当前版本） |
+| /api/resumes/{id}/generate | POST | AI 生成新版本（锁定事务 + UNIQUE 约束，**永不覆盖旧版本**） |
+| /api/resumes/{id}/versions | GET | 历史版本列表 |
+| /api/resumes/{id}/versions/{versionId} | GET | 指定版本内容 |
+| /api/resumes/{id}/export | POST | 导出 PDF / Word（**必须指定 versionId**） |
+
+生成请求：
+
+```json
+{ "targetJobId": 1001, "generationReason": "JOB_TARGETED" }
+```
+
+生成返回（content 为结构化 JSON，前端/导出端套模板渲染——内容与样式分离）：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "resumeId": 1, "versionId": 3, "versionNumber": 3,
+    "content": {
+      "personalInfo": {}, "education": [], "skills": [],
+      "projects": [], "experiences": [], "selfEvaluation": ""
+    }
+  }
+}
+```
+
+校验与错误：简历不属于当前用户 → 403；生成时只使用 CONFIRMED 数据；并发生成由锁定事务 + UNIQUE(resume_id, version_number) 保证版本号不重复。
+
+### 7.1 导出
+
+请求（⭐ versionId 必填，**不允许默认导出最新版本**，否则版本管理失去意义）：
+
+```json
+{ "versionId": 3, "format": "PDF" }
+```
+
+| format | 输出 | Content-Type（二轮审查修正） |
+|---|---|---|
+| PDF | .pdf | `application/pdf` |
+| DOCX | .docx | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+
+校验与错误：versionId 缺失 → 400；版本不存在或不属于当前用户 → 403/404；format 非 PDF/DOCX → 400。
+实现技术（已确定）：PDF = OpenHTMLtoPDF；Word = Apache POI XWPF。
+
+## 8. 岗位（jobs）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/jobs | GET | 岗位列表（分页 + 筛选） |
+| /api/jobs/{id} | GET | 岗位详情（含 job_requirement 技能列表） |
+| /api/jobs | POST | 手动新增岗位（MVP 仅开发用途，不开放管理端） |
+| /api/jobs/{id}/parse | POST | AI 解析 JD 生成技能要求 |
+
+### 8.1 列表筛选参数（二轮审查明确）
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| page / size | int | 否 | 分页，默认 1/10 |
+| keyword | string | 否 | 关键词，模糊匹配 position、company |
+| city | string | 否 | 城市精确匹配 |
+| salary | string | 否 | 薪资关键字模糊匹配（salary 为文本，见 database.md 已知限制） |
+
+示例：`GET /api/jobs?page=1&size=10&keyword=Java&city=深圳`
+
+JD 解析请求：
+
+```json
+{ "jdContent": "岗位要求：熟悉Java、Spring Boot、MySQL，了解Redis。" }
+```
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "position": "Java开发实习生",
+    "requirements": [
+      { "skill": "Java", "importance": "REQUIRED", "weight": 30 },
+      { "skill": "Spring Boot", "importance": "REQUIRED", "weight": 30 },
+      { "skill": "MySQL", "importance": "REQUIRED", "weight": 25 },
+      { "skill": "Redis", "importance": "PREFERRED", "weight": 15 }
+    ]
+  }
+}
+```
+
+## 9. 岗位匹配（match）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/match/analyze | POST | 分析匹配度（生成 match_result + match_detail） |
+| /api/match/{id} | GET | 匹配详情（归属校验） |
+| /api/match/jobs/recommend | GET | 岗位推荐（排序参考用户反馈 + 历史反馈统计） |
+| /api/match/advice | POST | 投递建议：匹配度分析 + AI 投递话术（MVP 实时生成不落库，P1 独立保存） |
+
+匹配分析请求：
+
+```json
+{ "jobId": 1001, "resumeVersionId": 3 }
+```
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "matchResultId": 5001, "matchScore": 65,
+    "matchedCount": 2, "partialCount": 1, "missingCount": 1, "unconfirmedCount": 0,
+    "details": [
+      { "skill": "Java", "status": "MATCHED", "evidence": "学生管理系统项目", "suggestion": "保留" },
+      { "skill": "MySQL", "status": "PARTIAL", "evidence": "个人技能记录中有学习经历", "suggestion": "补充项目应用证据" },
+      { "skill": "Spring Boot", "status": "MISSING", "evidence": null, "suggestion": "发起追问确认是否学习过" }
+    ]
+  }
+}
+```
+
+**匹配分数由 Java 计算**：`M = Σ(wᵢ·sᵢ) / Σwᵢ × 100%`，wᵢ 为岗位技能权重；sᵢ 满足系数 = 有项目证据 1 / 部分满足 0.5 / 无证据 0 / 待确认不计分并单独标记。此分数是系统定义的规则匹配分，**不是招聘成功概率**。
+
+### 9.1 岗位推荐排序规则（二轮审查明确：可解释规则，无机器学习）
+
+`GET /api/match/jobs/recommend?page=1&size=10`
+
+基础排序：按匹配分数降序。叠加以下**可解释规则**（Java 实现，规则详见 database.md §3.7）：
+
+1. **用户偏好反馈降权**：用户对某岗位反馈过 NOT_INTERESTED → 同 position/company 岗位排序系数 ×0.5；LOCATION_MISMATCH → 该城市后置；SALARY_MISMATCH → 薪资低于期望后置
+2. **历史反馈统计微调**：该岗位类型（按 position 关键词）历史已读率/面试率小幅加权
+3. 返回中标注每个岗位的 `rankReasons`（如 "同类岗位曾标记不感兴趣，已后置"），保证排序可解释
+
+### 9.2 投递建议（含话术，赛题要求）
+
+请求：
+
+```json
+{ "jobId": 1001, "resumeVersionId": 3 }
+```
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "matchScore": 65,
+    "strengths": ["Java 有项目证据", "MySQL 有学习记录"],
+    "gaps": ["Spring Boot 无证据"],
+    "pitchMessage": "您好，我是XX大学计算机专业大二学生，用 Java 独立完成过学生信息管理系统（增删改查+文件持久化），对 MySQL 有系统学习。看到贵司 Java 实习生岗位，希望有机会进一步交流。",
+    "suggestions": ["建议先补充 Spring Boot 练习经历后再投递"]
+  }
+}
+```
+
+约束：话术**仅使用已确认且有证据的信息**，不编造技能；输出经 Java 结构校验。校验与错误：jobId/resumeVersionId 不存在 → 404；简历版本不属于当前用户 → 403。
+
+## 10. 反向优化（optimization）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/optimization/tasks | POST | 创建优化任务（点击差距项发起） |
+| /api/optimization/tasks/{id} | GET | 任务详情（归属校验） |
+| /api/optimization/tasks/{id}/reply | POST | 回复 AI 追问（多轮） |
+| /api/optimization/tasks/{id}/confirm | POST | 确认补充信息 → 写入档案（evidence CONFIRMED）→ 触发简历重新生成 |
+
+任务创建：
+
+```json
+{ "jobId": 1001, "resumeVersionId": 3, "targetSkill": "Spring Boot", "chatSessionId": 1001 }
+```
+
+回复追问：
+
+```json
+{ "taskId": 2001, "answer": "我学习过Spring Boot，做过简单的用户信息接口，使用了Controller和Service。" }
+```
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "reply": "你这个练习项目使用数据库保存用户信息了吗？",
+    "nextQuestion": true,
+    "taskStatus": "WAITING_USER"
+  }
+}
+```
+
+任务状态机：WAITING_USER → ANSWER_RECEIVED → LLM_EXTRACTION → USER_CONFIRMATION → PROFILE_UPDATED → RESUME_REGENERATED。
+**只有 confirm 后才写入档案**并触发重生成；追问产生的候选信息同样走 profile_evidence（PENDING→CONFIRMED/REJECTED）流程。
+
+## 11. 投递管理（applications）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/applications | POST | 创建投递（模拟一键投递，状态 PENDING→APPLIED） |
+| /api/applications | GET | 投递列表（分页、按状态筛选：query status） |
+| /api/applications/{id} | GET | 投递详情 |
+| /api/applications/{id}/status | PUT | 更新状态（后端校验状态机） |
+| /api/applications/{id}/history | GET | 状态历史（时间轴） |
+| /api/applications/follow-ups | GET | 待跟进列表（主动提醒） |
+| /api/applications/{id}/follow-up | POST | ⭐ 处理提醒：标记已跟进（二轮审查新增） |
+
+创建投递：
+
+```json
+{ "jobId": 1001, "resumeVersionId": 3 }
+```
+
+校验：job 存在 → 404；resume_version 存在且属于当前用户 → 403；同一岗位重复投递 → 409。
+
+更新状态（note 即**状态类**反馈）：
+
+```json
+{ "status": "INTERVIEW_INVITED", "note": "HR通知下周参加技术面试" }
+```
+
+校验：①投递记录属于当前用户 ②简历版本属于当前用户 ③岗位存在 ④状态转移合法（见 database.md §4），否则 403/404/409。更新成功后**自动重置提醒计时**（last_follow_up_at=now，next_follow_up_at=now+3 天）。
+
+### 11.1 待跟进列表（主动提醒，赛题要求）
+
+`GET /api/applications/follow-ups`（触发规则见 database.md §5）：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "count": 2,
+    "items": [
+      {
+        "applicationId": 3001, "jobId": 1001, "company": "某科技公司",
+        "position": "Java开发实习生", "status": "APPLIED",
+        "lastUpdateAt": "2026-11-05T10:00:00+08:00", "daysNoResponse": 3
+      }
+    ]
+  }
+}
+```
+
+### 11.2 处理提醒
+
+请求：
+
+```json
+{ "action": "COMPLETED", "note": "已联系HR", "nextFollowUpAt": "2026-11-15T10:00:00+08:00" }
+```
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| action | 是 | 固定 COMPLETED（已跟进） |
+| note | 否 | 跟进说明 |
+| nextFollowUpAt | 否 | 下次提醒时间；不填默认 now+3 天 |
+
+行为：last_follow_up_at=now，next_follow_up_at=指定值或 now+3 天 → 该记录移出待跟进列表，到点后重新出现（**不重复弹已处理提醒**）。
+校验：投递不属于当前用户 → 403；nextFollowUpAt 早于当前时间 → 400。
+
+## 12. 用户反馈（feedback，二轮审查新增）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/feedback | POST | 提交岗位偏好反馈（写 user_feedback，影响推荐排序） |
+
+请求：
+
+```json
+{ "jobId": 1001, "feedbackType": "NOT_INTERESTED", "feedbackContent": "距离太远" }
+```
+
+返回：
+
+```json
+{ "code": 200, "message": "success", "data": { "feedbackId": 7001 } }
+```
+
+校验：jobId 存在 → 404；feedbackType ∈ {NOT_INTERESTED, LOCATION_MISMATCH, SALARY_MISMATCH, SKILL_ALREADY_HAVE}，非法 → 400。
+效果：写入 user_feedback 后，GET /api/match/jobs/recommend 按 §9.1 规则调整排序。**与状态类反馈（§11 status+note）区分，两者不混用。**
+
+## 13. 数据库字段 ↔ API 参数命名对照（前后端统一）
+
+| 数据库（snake_case） | API（camelCase） |
+|---|---|
+| real_name | realName |
+| graduation_year | graduationYear |
+| target_position | targetPosition |
+| target_city | targetCity |
+| expected_salary | expectedSalary |
+| project_name | projectName |
+| tech_stack | techStack |
+| jd_content | jdContent |
+| source_type | sourceType |
+| external_url | externalUrl |
+| match_score | matchScore |
+| match_status | status |
+| resume_version_id | resumeVersionId |
+| generation_reason | generationReason |
+| current_version_id | currentVersionId |
+| confirmation_status | confirmationStatus |
+| entity_type / entity_id | entityType / entityId |
+| source_id | sourceId |
+| evidence_content | evidenceContent |
+| old_status / new_status | oldStatus / newStatus |
+| applied_at | appliedAt |
+| next_follow_up_at / last_follow_up_at | nextFollowUpAt / lastFollowUpAt |
+| feedback_type / feedback_content | feedbackType / feedbackContent |
+
+其余字段名一致（如 id、skill、weight、note）。**新增字段必须先在本文件登记。**
+
+## 14. 接口 ↔ P0 功能覆盖检查
+
+| P0 功能 | 覆盖接口 |
+|---|---|
+| 注册登录 | /api/auth/register、/login、/me |
+| 对话建档 | /api/chat/sessions、sessions/{id}/messages、send |
+| 信息抽取+证据链 | /api/chat/send + /api/profile/evidence、evidence/confirm |
+| 缺失追问 | /api/chat/send（missingFields） |
+| 完整度雷达 | /api/profile/completeness |
+| 简历生成+版本 | /api/resumes/* |
+| PDF/Word 导出 | /api/resumes/{id}/export（versionId 必填） |
+| 求职意向 | /api/profile（PUT） |
+| 职位库+JD解析 | /api/jobs*、/api/jobs/{id}/parse |
+| 岗位匹配+推荐 | /api/match/analyze、/{id}、jobs/recommend |
+| 反向优化 | /api/optimization/tasks* |
+| 投递+话术+状态机 | /api/applications*、/api/match/advice |
+| 主动提醒 | /api/applications/follow-ups、{id}/follow-up |
+| 反馈回流 | /api/feedback + /api/match/jobs/recommend 排序规则 |

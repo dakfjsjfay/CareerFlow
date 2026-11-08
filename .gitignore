@@ -1,0 +1,37 @@
+# ===== 环境变量与密钥（禁止提交） =====
+.env
+.env.local
+*.env
+!*.env.example
+
+# ===== Java / Maven =====
+backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===== Node / 前端 =====
+node_modules/
+dist/
+frontend/dist/
+*.local
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db
+*.log
+logs/
+.deep-copilot/
+
+# ===== 临时文件 =====
+*.tmp
+*.bak
+
+# ===== 本地临时验证代码（不进仓库） =====
+scratch/
