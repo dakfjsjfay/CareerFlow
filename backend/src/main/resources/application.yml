@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: careerflow-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # createDatabaseIfNotExist：本地首次启动自动建库（ai_resume）
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/ai_resume?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  jackson:
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  configuration:
+    # 数据库 snake_case 字段自动映射 Java camelCase 属性
+    map-underscore-to-camel-case: true
+    # 开发期打印 SQL，交付（D13）前移除
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+# AI 服务配置：密钥只从环境变量读取，禁止写死在代码或配置中
+ai:
+  deepseek:
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: ${DEEPSEEK_MODEL:deepseek-v4-pro}
