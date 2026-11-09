@@ -66,10 +66,9 @@ public class EvidenceService {
      * 与 ChatService.send 在同一事务中；任何异常都会连同消息一起回滚。
      */
     @Transactional
-    public void createPendingFromExtraction(Long userId, Long sourceMessageId,
-                                            JsonNode extractedInfo, String sourceText) {
-        List<ProfileEvidence> candidates =
-                extractionFactory.build(userId, sourceMessageId, extractedInfo, sourceText);
+    public void createPendingFromExtraction(Long userId, List<EvidenceSource> sources,
+                                            JsonNode extractedInfo) {
+        List<ProfileEvidence> candidates = extractionFactory.build(userId, sources, extractedInfo);
         if (candidates.isEmpty()) {
             return;
         }

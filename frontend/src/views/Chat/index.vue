@@ -11,6 +11,8 @@ import {
 } from '@/api/chat'
 import type { FileAnalysisResult } from '@/api/files'
 import DocumentAnalyzer from '@/components/DocumentAnalyzer.vue'
+import EvidenceConfirmDialog from '@/components/EvidenceConfirmDialog.vue'
+import { useEvidenceConfirm } from '@/composables/useEvidenceConfirm'
 
 interface UiMessage {
   id: number
@@ -30,6 +32,18 @@ const sending = ref(false)
 const messageListRef = ref<HTMLElement>()
 const showAnalyzer = ref(false)
 const lastAnalysis = ref<FileAnalysisResult | null>(null)
+
+const {
+  visible: evidenceVisible,
+  submitting: evidenceSubmitting,
+  groups: evidenceGroups,
+  pendingCount: evidencePendingCount,
+  refresh: refreshEvidence,
+  open: openEvidence,
+  afterSend: afterSendEvidence,
+  confirmSelected: confirmSelectedEvidence,
+  rejectSelected: rejectSelectedEvidence,
+} = useEvidenceConfirm()
 
 let tempId = -1
 
@@ -151,6 +165,12 @@ async function handleSend() {
     })
     // 首条消息会更新会话标题，刷新列表以便侧栏展示
     await loadSessionList()
+    // 抽取结果进入待确认证据；证据加载失败不影响本轮消息已落库
+    try {
+      await afterSendEvidence(res.data.extractedInfo)
+    } catch (error) {
+      ElMessage.error(errorMessage(error, '待确认信息加载失败，请稍后重试'))
+    }
   } catch (error) {
     // AI 失败时后端不落库，前端同步撤回这条用户消息
     // 注意：不能用对象引用比较，响应式数组中的元素是代理对象
@@ -163,6 +183,27 @@ async function handleSend() {
   }
 }
 
+async function handleConfirmEvidence(ids: number[]) {
+  try {
+    const result = await confirmSelectedEvidence(ids)
+    ElMessage.success(`已确认 ${result.confirmedCount} 条信息`)
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '确认失败，请稍后重试'))
+    // 409 等冲突：刷新列表，移除已被其他请求处理的条目
+    void refreshEvidence().catch(() => {})
+  }
+}
+
+async function handleRejectEvidence(ids: number[]) {
+  try {
+    await rejectSelectedEvidence(ids)
+    ElMessage.success(`已忽略 ${ids.length} 条信息`)
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '操作失败，请稍后重试'))
+    void refreshEvidence().catch(() => {})
+  }
+}
+
 onMounted(async () => {
   loadingSessions.value = true
   try {
@@ -172,6 +213,8 @@ onMounted(async () => {
   } finally {
     loadingSessions.value = false
   }
+  // 同步待确认数量，不自动弹窗；失败不打扰
+  void refreshEvidence().catch(() => {})
 })
 </script>
 
@@ -211,7 +254,18 @@ onMounted(async () => {
           <div class="chat-title">{{ activeSession?.title || 'AI 对话建档' }}</div>
           <div class="chat-sub">通过对话补充教育、技能、项目与实习经历</div>
         </div>
-        <el-tag size="small" effect="plain">证据链 · 不编造</el-tag>
+        <div class="chat-head-actions">
+          <el-button
+            v-if="evidencePendingCount > 0"
+            size="small"
+            type="warning"
+            plain
+            @click="openEvidence"
+          >
+            待确认 {{ evidencePendingCount }}
+          </el-button>
+          <el-tag size="small" effect="plain">证据链 · 不编造</el-tag>
+        </div>
       </header>
 
       <div ref="messageListRef" v-loading="loadingMessages" class="message-list">
@@ -300,6 +354,14 @@ onMounted(async () => {
         </el-button>
       </template>
     </el-dialog>
+
+    <EvidenceConfirmDialog
+      v-model="evidenceVisible"
+      :groups="evidenceGroups"
+      :submitting="evidenceSubmitting"
+      @confirm="handleConfirmEvidence"
+      @reject="handleRejectEvidence"
+    />
   </div>
 </template>
 
@@ -408,6 +470,12 @@ onMounted(async () => {
   margin-top: 4px;
   font-size: 12px;
   color: var(--cf-text-secondary);
+}
+
+.chat-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .composer-left {

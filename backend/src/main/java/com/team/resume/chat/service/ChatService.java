@@ -24,6 +24,7 @@ import com.team.resume.chat.vo.ChatSessionVO;
 import com.team.resume.chat.vo.SendMessageResponse;
 import com.team.resume.common.BusinessException;
 import com.team.resume.profile.service.EvidenceService;
+import com.team.resume.profile.service.EvidenceSource;
 
 /**
  * 对话建档业务（切片 2）：
@@ -126,9 +127,15 @@ public class ChatService {
         assistantMessage.setCreatedAt(now);
         messageMapper.insert(assistantMessage);
 
-        // 抽取结果只落 PENDING 证据，不写档案实体表（docs/api.md §5.1）
-        evidenceService.createPendingFromExtraction(
-                userId, userMessage.getId(), result.extractedInfo(), userContent);
+        // 抽取结果只落 PENDING 证据；来源归属到真正说过这句话的用户消息
+        List<EvidenceSource> sources = new ArrayList<>();
+        for (ChatMessage message : chronological) {
+            if (ChatMessage.ROLE_USER.equals(message.getRole())) {
+                sources.add(new EvidenceSource(message.getId(), message.getContent()));
+            }
+        }
+        sources.add(new EvidenceSource(userMessage.getId(), userContent));
+        evidenceService.createPendingFromExtraction(userId, sources, result.extractedInfo());
 
         if (chronological.isEmpty() && DEFAULT_TITLE.equals(session.getTitle())) {
             session.setTitle(truncate(userContent, 30));
