@@ -29,6 +29,7 @@ import com.team.resume.profile.entity.UserProfile;
 import com.team.resume.profile.mapper.ProfileEvidenceMapper;
 import com.team.resume.profile.mapper.UserProfileMapper;
 import com.team.resume.profile.service.EvidenceService;
+import com.team.resume.profile.service.EvidenceSource;
 import com.team.resume.profile.service.ExtractionEvidenceFactory;
 import com.team.resume.profile.service.ProfileDataService;
 import com.team.resume.profile.vo.ConfirmEvidenceResult;
@@ -227,11 +228,12 @@ class EvidenceServiceTest {
         ProfileEvidence sameAsPending = evidence(null, ProfileEvidence.ENTITY_SKILL, "skills", "Java");
         ProfileEvidence sameAsConfirmed = evidence(null, ProfileEvidence.ENTITY_SKILL, "skills", "MySQL");
         ProfileEvidence fresh = evidence(null, ProfileEvidence.ENTITY_SKILL, "skills", "Redis");
-        when(extractionFactory.build(1L, 55L, null, "我学过 Java、MySQL 和 Redis"))
+        List<EvidenceSource> sources = List.of(new EvidenceSource(55L, "我学过 Java、MySQL 和 Redis"));
+        when(extractionFactory.build(1L, sources, null))
                 .thenReturn(List.of(sameAsPending, sameAsConfirmed, fresh));
         when(evidenceMapper.selectList(any())).thenReturn(List.of(pending, confirmed));
 
-        evidenceService.createPendingFromExtraction(1L, 55L, null, "我学过 Java、MySQL 和 Redis");
+        evidenceService.createPendingFromExtraction(1L, sources, null);
 
         ArgumentCaptor<ProfileEvidence> captor = ArgumentCaptor.forClass(ProfileEvidence.class);
         verify(evidenceMapper, times(1)).insert(captor.capture());

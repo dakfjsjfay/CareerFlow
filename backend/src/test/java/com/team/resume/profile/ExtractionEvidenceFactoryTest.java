@@ -11,10 +11,11 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.resume.profile.entity.ProfileEvidence;
+import com.team.resume.profile.service.EvidenceSource;
 import com.team.resume.profile.service.ExtractionEvidenceFactory;
 
 /**
- * 抽取结果 → PENDING 证据的映射测试（包含 Java 侧事实校验）。
+ * 抽取结果 → PENDING 证据的映射测试（包含 Java 侧事实校验与来源归属）。
  */
 class ExtractionEvidenceFactoryTest {
 
@@ -54,7 +55,8 @@ class ExtractionEvidenceFactoryTest {
                 }
                 """);
 
-        List<ProfileEvidence> evidence = factory.build(1L, 55L, info, FULL_SOURCE);
+        List<ProfileEvidence> evidence = factory.build(
+                1L, List.of(new EvidenceSource(55L, FULL_SOURCE)), info);
 
         assertThat(evidence).hasSize(13);
         assertThat(evidence).allSatisfy(e -> {
@@ -116,7 +118,9 @@ class ExtractionEvidenceFactoryTest {
                 """);
 
         List<ProfileEvidence> evidence = factory.build(
-                2L, 66L, info, "我是计算机相关专业大二学生，学过 Java，做过学生管理系统。");
+                2L,
+                List.of(new EvidenceSource(66L, "我是计算机相关专业大二学生，学过 Java，做过学生管理系统。")),
+                info);
 
         assertThat(evidence).extracting(ProfileEvidence::getFieldName)
                 .containsExactly("major", "skills", "project");
@@ -128,6 +132,43 @@ class ExtractionEvidenceFactoryTest {
                     JsonNode data = objectMapper.readTree(e.getEvidenceContent());
                     assertThat(data.path("projectName").asText()).isEqualTo("学生管理系统");
                 });
+    }
+
+    @Test
+    void attributesEachFactToTheUserMessageWhereItWasStated() throws Exception {
+        EvidenceSource first = new EvidenceSource(11L, "我叫张三，就读于某某大学");
+        EvidenceSource middle = new EvidenceSource(22L, "我学过 MySQL");
+        EvidenceSource current = new EvidenceSource(33L, "我用 Java 做过学生管理系统");
+
+        JsonNode info = objectMapper.readTree("""
+                {
+                  "basic": { "realName": "张三" },
+                  "education": { "school": "某某大学" },
+                  "skills": ["MySQL", "Java"],
+                  "projects": [{ "projectName": "学生管理系统", "techStack": ["Java"] }]
+                }
+                """);
+
+        List<ProfileEvidence> evidence = factory.build(1L, List.of(first, middle, current), info);
+
+        assertThat(evidence).hasSize(5);
+        assertThat(evidence)
+                .extracting(e -> e.getFieldName() + "@" + e.getSourceId())
+                .containsExactlyInAnyOrder(
+                        "real_name@11", "school@11", "skills@22", "skills@33", "project@33");
+    }
+
+    @Test
+    void prefersTheMostRecentMessageWhenTheSameFactAppearsAgain() throws Exception {
+        List<ProfileEvidence> evidence = factory.build(
+                1L,
+                List.of(
+                        new EvidenceSource(11L, "我叫张三"),
+                        new EvidenceSource(22L, "我叫张三")),
+                objectMapper.readTree("{\"basic\":{\"realName\":\"张三\"}}"));
+
+        assertThat(evidence).hasSize(1);
+        assertThat(evidence.get(0).getSourceId()).isEqualTo(22L);
     }
 
     @Test
@@ -146,11 +187,12 @@ class ExtractionEvidenceFactoryTest {
                 }
                 """);
 
-        assertThat(factory.build(1L, 55L, hallucinated, "????")).isEmpty();
+        assertThat(factory.build(1L, List.of(new EvidenceSource(55L, "????")), hallucinated))
+                .isEmpty();
     }
 
     @Test
-    void filtersIndividualValuesThatAreNotGroundedInSource() throws Exception {
+    void filtersIndividualValuesThatAreNotGroundedInAnyUserMessage() throws Exception {
         JsonNode info = objectMapper.readTree("""
                 {
                   "skills": ["Java", "MySQL", "Spring Boot"],
@@ -162,7 +204,7 @@ class ExtractionEvidenceFactoryTest {
                 """);
 
         List<ProfileEvidence> evidence = factory.build(
-                1L, 55L, info, "我用 Java 做过学生管理系统");
+                1L, List.of(new EvidenceSource(55L, "我用 Java 做过学生管理系统")), info);
 
         assertThat(evidence).filteredOn(e -> ProfileEvidence.ENTITY_SKILL.equals(e.getEntityType()))
                 .extracting(ProfileEvidence::getEvidenceContent)
@@ -186,13 +228,17 @@ class ExtractionEvidenceFactoryTest {
                 }
                 """);
 
-        assertThat(factory.build(1L, 55L, info, "任何内容")).isEmpty();
+        assertThat(factory.build(1L, List.of(new EvidenceSource(55L, "任何内容")), info)).isEmpty();
     }
 
     @Test
     void emptyOrMissingExtractionProducesNoEvidence() throws Exception {
-        assertThat(factory.build(1L, 55L, objectMapper.readTree("{}"), "任何内容")).isEmpty();
-        assertThat(factory.build(1L, 55L, null, "任何内容")).isEmpty();
-        assertThat(factory.build(null, 55L, objectMapper.readTree("{}"), "任何内容")).isEmpty();
+        assertThat(factory.build(1L, List.of(new EvidenceSource(55L, "任何内容")),
+                objectMapper.readTree("{}"))).isEmpty();
+        assertThat(factory.build(1L, List.of(new EvidenceSource(55L, "任何内容")), null)).isEmpty();
+        assertThat(factory.build(null, List.of(new EvidenceSource(55L, "任何内容")),
+                objectMapper.readTree("{}"))).isEmpty();
+        assertThat(factory.build(1L, List.of(), objectMapper.readTree("{\"skills\":[\"Java\"]}")))
+                .isEmpty();
     }
 }

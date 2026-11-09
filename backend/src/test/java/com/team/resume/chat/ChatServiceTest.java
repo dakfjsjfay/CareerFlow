@@ -35,6 +35,7 @@ import com.team.resume.chat.vo.ChatSessionVO;
 import com.team.resume.chat.vo.SendMessageResponse;
 import com.team.resume.common.BusinessException;
 import com.team.resume.profile.service.EvidenceService;
+import com.team.resume.profile.service.EvidenceSource;
 
 @ExtendWith(MockitoExtension.class)
 class ChatServiceTest {
@@ -125,9 +126,12 @@ class ChatServiceTest {
         assertThat(saved.get(0).getContent()).isEqualTo("我用 Java 做过学生管理系统");
         assertThat(saved.get(1).getContent()).isEqualTo("你负责了项目中的哪些功能？");
         verify(sessionMapper).updateById(session);
-        // 抽取结果必须以「用户消息 id」为 source_id 落为 PENDING 证据
-        verify(evidenceService).createPendingFromExtraction(
-                eq(1L), eq(201L), any(), eq("我用 Java 做过学生管理系统"));
+        // 抽取结果以用户消息为来源落为 PENDING 证据
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<EvidenceSource>> sourceCaptor = ArgumentCaptor.forClass(List.class);
+        verify(evidenceService).createPendingFromExtraction(eq(1L), sourceCaptor.capture(), any());
+        assertThat(sourceCaptor.getValue()).containsExactly(
+                new EvidenceSource(201L, "我用 Java 做过学生管理系统"));
     }
 
     @Test
@@ -144,7 +148,7 @@ class ChatServiceTest {
 
         verify(messageMapper, never()).insert(any(ChatMessage.class));
         verify(sessionMapper, never()).updateById(any(ChatSession.class));
-        verify(evidenceService, never()).createPendingFromExtraction(any(), any(), any(), any());
+        verify(evidenceService, never()).createPendingFromExtraction(any(), any(), any());
     }
 
     @Test
@@ -162,6 +166,45 @@ class ChatServiceTest {
         assertThat(session.getTitle()).hasSize(31);
         assertThat(session.getTitle()).endsWith("…");
         assertThat(session.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void evidenceSourcesContainOnlyUserMessagesAndEndWithCurrentMessage() {
+        ChatSession session = session(5L, 1L);
+        when(sessionMapper.selectById(5L)).thenReturn(session);
+        ChatMessage assistantHistory = message(32L, ChatMessage.ROLE_ASSISTANT, "你好");
+        ChatMessage userHistory = message(31L, ChatMessage.ROLE_USER, "我叫张三");
+        when(messageMapper.selectList(any()))
+                .thenReturn(new ArrayList<>(List.of(assistantHistory, userHistory)));
+        when(messageMapper.insert(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            message.setId(ChatMessage.ROLE_USER.equals(message.getRole()) ? 201L : 202L);
+            return 1;
+        });
+        when(aiService.chat(anyList(), anyString()))
+                .thenReturn(new ChatExtractionResult(
+                        "请继续", new ObjectMapper().createObjectNode(), List.of()));
+
+        chatService.send(1L, sendRequest(5L, "新消息"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<EvidenceSource>> captor = ArgumentCaptor.forClass(List.class);
+        verify(evidenceService).createPendingFromExtraction(eq(1L), captor.capture(), any());
+        assertThat(captor.getValue())
+                .extracting(EvidenceSource::messageId)
+                .containsExactly(31L, 201L);
+        assertThat(captor.getValue())
+                .extracting(EvidenceSource::content)
+                .containsExactly("我叫张三", "新消息");
+    }
+
+    private static ChatMessage message(Long id, String role, String content) {
+        ChatMessage message = new ChatMessage();
+        message.setId(id);
+        message.setRole(role);
+        message.setContent(content);
+        message.setCreatedAt(LocalDateTime.now());
+        return message;
     }
 
     private static ChatSession session(Long id, Long userId) {
