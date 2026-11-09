@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * 全局异常处理：把异常统一转成 Result 结构，并返回正确的 HTTP 状态码。
@@ -31,6 +32,12 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         return ResponseEntity.badRequest()
                 .body(Result.error(400, message));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Result<Void>> handleUploadSize(MaxUploadSizeExceededException e) {
+        return ResponseEntity.badRequest()
+                .body(Result.error(400, "文件大小超过限制（最大 10MB）"));
     }
 
     @ExceptionHandler(Exception.class)

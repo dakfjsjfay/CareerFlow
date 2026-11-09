@@ -90,6 +90,16 @@ Chat 2 的 15 张 → +profile_experience（赛题要求工作/实习经历）�
 - 独立 ai 包封装（DeepSeekClient/AIService/PromptTemplate/AIResponseParser），业务模块不直接发 HTTP
 - JSON Output；结构校验 + 事实校验；超时 60s、重试 1 次、失败 502
 
+## D14 文件导入分析：本地解析 + 本地 OCR（D3 增强）
+
+- 支持 Word / PPT / PDF / 图片 / 文本 / Markdown / ZIP / 常见核心代码文件
+- PDF 用 PDFBox：优先抽取文本层；扫描件渲染前 5 页后做 OCR
+- 图片用 Tess4J + tesseract 原生库，`chi_sim+eng` 语言包随应用打包，不调用外部视觉/OCR 服务
+- 实测当前 DeepSeek 模型对 `image_url` 返回 `[Unsupported Image]`，因此不把图片直接交给大模型
+- 文件只在内存中解析、不落盘；限制单文件 10MB、总大小 60MB、正文合计 2 万字符、ZIP 200 个文件/20MB、ZIP 内最多 OCR 3 个图片/PDF
+- 一次最多 6 个非 ZIP 文件协同分析；ZIP 必须单独上传，避免重复解压和上下文失控
+- 分析结果只返回待确认候选，不直接写入档案/简历
+
 ## 已知限制（如实声明）
 
 | # | 限制 | 影响 | 计划 |
@@ -99,6 +109,8 @@ Chat 2 的 15 张 → +profile_experience（赛题要求工作/实习经历）�
 | 3 | 反馈样本量小 | 推荐排序的统计调整只作启发式，不宣称算法学习 | 答辩如实说明 |
 | 4 | NO_RESPONSE 手动标记 | 无定时任务自动标记 | P1 加 @Scheduled |
 | 5 | 教育经历单条存储 | 无法支持多段教育经历 | P1 拆 profile_education |
+| 6 | 图片/扫描件依赖 OCR 质量 | 模糊、倾斜、复杂排版可能识别不全 | 提示改用清晰图片或 Word/文本；P1 评估更好的 OCR |
+| 7 | 扫描版 PDF 仅 OCR 前 5 页 | 长 PDF 后半部分不参与分析 | MVP 接受；按需提高上限 |
 
 ## 尚未解决的问题
 

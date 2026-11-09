@@ -1,5 +1,7 @@
 package com.team.resume.auth.service;
 
+import java.time.LocalDateTime;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +43,8 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
+        // 不依赖数据库默认值，显式写入创建时间
+        user.setCreatedAt(LocalDateTime.now());
         userMapper.insert(user);
     }
 

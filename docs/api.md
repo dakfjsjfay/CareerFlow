@@ -512,3 +512,58 @@ JD 解析请求：
 | 投递+话术+状态机 | /api/applications*、/api/match/advice |
 | 主动提醒 | /api/applications/follow-ups、{id}/follow-up |
 | 反馈回流 | /api/feedback + /api/match/jobs/recommend 排序规则 |
+
+## 15. 文件分析（files，D3 增强）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/files/analyze | POST | 上传资料文件，AI 分析个人资料/项目并生成候选信息与简历文案 |
+
+请求：`multipart/form-data`
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| file | 是 | 可重复 1~6 个；支持 .docx / .pptx / .pdf / .png / .jpg / .jpeg / .bmp / .gif / .txt / .md / .zip / 常见代码文件；单文件 ≤10MB，总大小 ≤60MB；ZIP 必须单独上传 |
+| analysisType | 否 | AUTO / PROFILE / PROJECT，默认 AUTO |
+| jobDescription | 否 | 目标岗位 JD；提供后返回岗位差距建议 |
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "files": [
+      { "fileName": "项目说明.docx", "fileType": "DOCX", "truncated": false }
+    ],
+    "fileName": "项目说明.docx",
+    "fileType": "DOCX",
+    "analysisType": "PROJECT",
+    "truncated": false,
+    "summary": "项目是一个基于 Java 的学生信息管理系统……",
+    "extractedInfo": {
+      "basic": {}, "education": {}, "skills": [],
+      "strengths": [], "projects": [], "experiences": [], "jobIntention": {}
+    },
+    "strengths": ["独立完成增删改查功能"],
+    "resumeSuggestions": ["基于 Java SE 实现学生信息管理系统，使用 MyBatis 操作 MySQL……"],
+    "jobGapSuggestions": ["JD 要求 Spring Boot，资料中未体现，建议补充真实练习经历"],
+    "missingFields": ["项目开发时间", "个人负责模块"],
+    "warnings": ["分析结果来自上传文件，需用户确认后才可写入档案"]
+  }
+}
+```
+
+约束与错误：
+
+- 文件只在内存中解析，**不保存原件**；正文超过 20000 字符会截断并标记 `truncated=true`
+- 一次最多 6 个文件；多个文件会合并为一次 AI 分析（响应中 `fileName` 为文件列表、`fileType=MULTI`）
+- ZIP 只能单独上传，不能与其他文件混合
+- PDF：优先抽取文本层；扫描件渲染前 5 页做 OCR（PDFBox）
+- 图片：使用本地 OCR（Tess4J，中文 + 英文语言包随应用打包），不调用外部视觉服务
+- ZIP 内最多 OCR 3 个图片/PDF，避免压缩包导致长时间占用
+- 文件分析包含 AI 调用，通常 10~60 秒；PDF/扫描件或多文件可能达到 1~2 分钟，前端对该接口单独设置 300 秒超时
+- 分析结果只是**待确认候选**，不直接写入档案或简历（证据链规则）
+- 不支持的文件类型 / 空文件 / 超过大小限制 → 400
+- AI 失败 → 502，不产生任何档案数据
+- 上传内容按不可信数据处理，提示词中要求模型忽略文档内的指令

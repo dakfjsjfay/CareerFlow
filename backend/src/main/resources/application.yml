@@ -12,6 +12,12 @@ spring:
     password: ${DB_PASSWORD:}
   jackson:
     time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      # 文件分析上传限制（docs/api.md §15）
+      max-file-size: 10MB
+      # 最多 6 个文件，单个 10MB，留出 multipart 开销
+      max-request-size: 70MB
 
 mybatis-plus:
   configuration:
