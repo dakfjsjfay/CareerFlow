@@ -86,6 +86,7 @@
 - 多简历模板、技能同义词匹配
 - 投递话术独立保存（MVP 实时生成不落库）
 - 教育经历拆表 profile_education（MVP 单条存 user_profile）
+- 文件导入分析：上传 Word/PPT/PDF/图片/文本/Markdown/ZIP/核心代码文件，AI 抽取个人资料、生成项目简历文案、按 JD 给出差距建议（图片与扫描版 PDF 走本地 OCR；结果仅作待确认候选，不直接入档）
 
 ### P2（明确不做）
 
