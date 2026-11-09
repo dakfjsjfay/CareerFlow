@@ -23,12 +23,14 @@ import com.team.resume.chat.vo.ChatMessageVO;
 import com.team.resume.chat.vo.ChatSessionVO;
 import com.team.resume.chat.vo.SendMessageResponse;
 import com.team.resume.common.BusinessException;
+import com.team.resume.profile.service.EvidenceService;
 
 /**
  * 对话建档业务（切片 2）：
  * - 会话/消息按 user_id 严格隔离
  * - AI 失败时用户消息与助手回复都不落库（docs/api.md §5）
- * - D3 只返回抽取候选信息；证据落库与确认在 D4 实现
+ * - D4：抽取结果落为 PENDING 证据（与消息同事务），实体表不写入，
+ *   必须经 /api/profile/evidence/confirm 由用户确认后才进入档案
  */
 @Service
 public class ChatService {
@@ -39,13 +41,16 @@ public class ChatService {
     private final ChatSessionMapper sessionMapper;
     private final ChatMessageMapper messageMapper;
     private final AIService aiService;
+    private final EvidenceService evidenceService;
 
     public ChatService(ChatSessionMapper sessionMapper,
                        ChatMessageMapper messageMapper,
-                       AIService aiService) {
+                       AIService aiService,
+                       EvidenceService evidenceService) {
         this.sessionMapper = sessionMapper;
         this.messageMapper = messageMapper;
         this.aiService = aiService;
+        this.evidenceService = evidenceService;
     }
 
     public ChatSessionVO createSession(Long userId, CreateSessionRequest request) {
@@ -120,6 +125,10 @@ public class ChatService {
         assistantMessage.setContent(result.reply());
         assistantMessage.setCreatedAt(now);
         messageMapper.insert(assistantMessage);
+
+        // 抽取结果只落 PENDING 证据，不写档案实体表（docs/api.md §5.1）
+        evidenceService.createPendingFromExtraction(
+                userId, userMessage.getId(), result.extractedInfo(), userContent);
 
         if (chronological.isEmpty() && DEFAULT_TITLE.equals(session.getTitle())) {
             session.setTitle(truncate(userContent, 30));

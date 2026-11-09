@@ -34,6 +34,7 @@ import com.team.resume.chat.service.ChatService;
 import com.team.resume.chat.vo.ChatSessionVO;
 import com.team.resume.chat.vo.SendMessageResponse;
 import com.team.resume.common.BusinessException;
+import com.team.resume.profile.service.EvidenceService;
 
 @ExtendWith(MockitoExtension.class)
 class ChatServiceTest {
@@ -47,11 +48,14 @@ class ChatServiceTest {
     @Mock
     private AIService aiService;
 
+    @Mock
+    private EvidenceService evidenceService;
+
     private ChatService chatService;
 
     @BeforeEach
     void setUp() {
-        chatService = new ChatService(sessionMapper, messageMapper, aiService);
+        chatService = new ChatService(sessionMapper, messageMapper, aiService, evidenceService);
     }
 
     @Test
@@ -95,6 +99,11 @@ class ChatServiceTest {
         ChatSession session = session(5L, 1L);
         when(sessionMapper.selectById(5L)).thenReturn(session);
         when(messageMapper.selectList(any())).thenReturn(new ArrayList<>());
+        when(messageMapper.insert(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            message.setId(ChatMessage.ROLE_USER.equals(message.getRole()) ? 201L : 202L);
+            return 1;
+        });
         when(aiService.chat(anyList(), eq("我用 Java 做过学生管理系统")))
                 .thenReturn(new ChatExtractionResult(
                         "你负责了项目中的哪些功能？",
@@ -116,6 +125,9 @@ class ChatServiceTest {
         assertThat(saved.get(0).getContent()).isEqualTo("我用 Java 做过学生管理系统");
         assertThat(saved.get(1).getContent()).isEqualTo("你负责了项目中的哪些功能？");
         verify(sessionMapper).updateById(session);
+        // 抽取结果必须以「用户消息 id」为 source_id 落为 PENDING 证据
+        verify(evidenceService).createPendingFromExtraction(
+                eq(1L), eq(201L), any(), eq("我用 Java 做过学生管理系统"));
     }
 
     @Test
@@ -132,6 +144,7 @@ class ChatServiceTest {
 
         verify(messageMapper, never()).insert(any(ChatMessage.class));
         verify(sessionMapper, never()).updateById(any(ChatSession.class));
+        verify(evidenceService, never()).createPendingFromExtraction(any(), any(), any(), any());
     }
 
     @Test
