@@ -79,9 +79,10 @@ public class DeepSeekClient {
                         .body(request)
                         .retrieve()
                         .body(ChatCompletionResponse.class);
-                log.info("DeepSeek 调用完成：model={}, thinking={}, 耗时={}ms",
-                        model, thinkingEnabled, System.currentTimeMillis() - start);
-                return extractContent(response);
+                String content = extractContent(response);
+                log.info("DeepSeek 调用完成：model={}, thinking={}, 耗时={}ms, contentLength={}",
+                        model, thinkingEnabled, System.currentTimeMillis() - start, content.length());
+                return content;
             } catch (RestClientResponseException e) {
                 int status = e.getStatusCode().value();
                 if (status == 401) {
@@ -113,13 +114,22 @@ public class DeepSeekClient {
 
     private static String extractContent(ChatCompletionResponse response) {
         if (response == null || response.choices() == null || response.choices().isEmpty()) {
-            throw new BusinessException(502, "AI 返回内容为空，请稍后重试");
+            log.warn("DeepSeek 返回空响应（无 choices）");
+            throw new EmptyAiContentException();
         }
-        Message message = response.choices().get(0).message();
-        if (message == null || message.content() == null || message.content().isBlank()) {
-            throw new BusinessException(502, "AI 返回内容为空，请稍后重试");
+        ChatCompletionResponse.Choice choice = response.choices().get(0);
+        Message message = choice.message();
+        String content = message == null ? null : message.content();
+        if (content == null || content.isBlank()) {
+            Integer completionTokens = response.usage() == null
+                    ? null
+                    : response.usage().completion_tokens();
+            log.warn("DeepSeek 返回空白内容：finish_reason={}, completion_tokens={}, content_length={}",
+                    choice.finish_reason(), completionTokens,
+                    content == null ? 0 : content.length());
+            throw new EmptyAiContentException();
         }
-        return message.content();
+        return content;
     }
 
     private static void sleepBeforeRetry(int attempt) {
