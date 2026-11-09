@@ -3,6 +3,8 @@ package com.team.resume.ai;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.team.resume.ai.dto.ChatExtractionResult;
@@ -15,6 +17,15 @@ import com.team.resume.ai.dto.Message;
  */
 @Service
 public class AIService {
+
+    private static final Logger log = LoggerFactory.getLogger(AIService.class);
+
+    /**
+     * 实测部分长上下文会让模型返回纯空白 content（finish_reason=stop）。
+     * 重试时在末尾追加一条输出约束，可稳定打破该状态。
+     */
+    private static final String RETRY_NUDGE =
+            "输出要求：必须只输出一个合法 JSON 对象，reply 字段不能为空；如果信息不足，就在 reply 中继续追问。";
 
     private final DeepSeekClient deepSeekClient;
     private final PromptTemplate promptTemplate;
@@ -35,10 +46,23 @@ public class AIService {
      * @param userMessage 本轮用户输入
      */
     public ChatExtractionResult chat(List<Message> history, String userMessage) {
+        try {
+            return chatOnce(history, userMessage, false);
+        } catch (EmptyAiContentException e) {
+            log.warn("AI 返回空白内容，追加输出约束后重试一次");
+            return chatOnce(history, userMessage, true);
+        }
+    }
+
+    private ChatExtractionResult chatOnce(List<Message> history, String userMessage,
+                                          boolean withNudge) {
         List<Message> messages = new ArrayList<>();
         messages.add(new Message("system", promptTemplate.chatExtractPrompt()));
         messages.addAll(history);
         messages.add(new Message("user", userMessage));
+        if (withNudge) {
+            messages.add(new Message("user", RETRY_NUDGE));
+        }
 
         String content = deepSeekClient.completeJson(messages);
         return responseParser.parseChatResult(content);
