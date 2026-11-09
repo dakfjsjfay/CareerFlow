@@ -35,12 +35,18 @@ public class DeepSeekClient {
     private final RestClient restClient;
     private final String apiKey;
     private final String model;
+    private final boolean thinkingEnabled;
+    private final int maxTokens;
 
     public DeepSeekClient(@Value("${ai.deepseek.base-url}") String baseUrl,
                           @Value("${ai.deepseek.api-key}") String apiKey,
-                          @Value("${ai.deepseek.model}") String model) {
+                          @Value("${ai.deepseek.model}") String model,
+                          @Value("${ai.deepseek.thinking-enabled:false}") boolean thinkingEnabled,
+                          @Value("${ai.deepseek.max-tokens:2500}") int maxTokens) {
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = model;
+        this.thinkingEnabled = thinkingEnabled;
+        this.maxTokens = maxTokens;
         String normalizedBaseUrl = baseUrl == null ? "" : baseUrl.trim().replaceAll("/+$", "");
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -59,10 +65,12 @@ public class DeepSeekClient {
      */
     public String completeJson(List<Message> messages) {
         ensureConfigured();
+        Map<String, String> thinking = thinkingEnabled ? null : Map.of("type", "disabled");
         ChatCompletionRequest request = new ChatCompletionRequest(
-                model, messages, 0.3, Map.of("type", "json_object"));
+                model, messages, 0.3, Map.of("type", "json_object"), maxTokens, thinking);
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            long start = System.currentTimeMillis();
             try {
                 ChatCompletionResponse response = restClient.post()
                         .uri("/chat/completions")
@@ -71,6 +79,8 @@ public class DeepSeekClient {
                         .body(request)
                         .retrieve()
                         .body(ChatCompletionResponse.class);
+                log.info("DeepSeek 调用完成：model={}, thinking={}, 耗时={}ms",
+                        model, thinkingEnabled, System.currentTimeMillis() - start);
                 return extractContent(response);
             } catch (RestClientResponseException e) {
                 int status = e.getStatusCode().value();
