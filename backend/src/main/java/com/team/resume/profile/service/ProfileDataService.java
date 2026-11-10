@@ -162,7 +162,7 @@ public class ProfileDataService {
         return experience;
     }
 
-    private UserProfile findByUserId(Long userId) {
+    public UserProfile findByUserId(Long userId) {
         return userProfileMapper.selectOne(new LambdaQueryWrapper<UserProfile>()
                 .eq(UserProfile::getUserId, userId));
     }

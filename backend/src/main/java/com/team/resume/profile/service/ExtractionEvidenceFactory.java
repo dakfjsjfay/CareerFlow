@@ -44,6 +44,13 @@ public class ExtractionEvidenceFactory {
     public static final String FIELD_TARGET_POSITION = "target_position";
     public static final String FIELD_TARGET_CITY = "target_city";
     public static final String FIELD_EXPECTED_SALARY = "expected_salary";
+    /** 用户明确表示没有工作/实习经历时使用的证据字段（不作为档案字段写入）。 */
+    public static final String FIELD_NO_EXPERIENCE = "no_experience";
+
+    private static final List<String> NO_EXPERIENCE_PHRASES = List.of(
+            "没有实习经历", "无实习经历", "没有实习经验", "无实习经验",
+            "没有工作经历", "无工作经历", "没有工作经验", "无工作经验",
+            "没有实习过", "没有工作过");
 
     /** 单条消息最多落多少条证据，防止异常输出撑爆确认列表。 */
     private static final int MAX_EVIDENCE_PER_MESSAGE = 100;
@@ -93,6 +100,7 @@ public class ExtractionEvidenceFactory {
                 first(JsonValues.text(intention, "expectedSalary", "expected_salary", "salary"),
                         JsonValues.text(extractedInfo, "expectedSalary", "expected_salary")));
 
+        addNoExperienceEvidence(result, userId, sources);
         return result;
     }
 
@@ -195,6 +203,28 @@ public class ExtractionEvidenceFactory {
         }
         result.add(evidence(userId, source.messageId(),
                 ProfileEvidence.ENTITY_PROFILE, fieldName, value.trim()));
+    }
+
+    /**
+     * 用户明确说「没有实习/工作经历」时生成一条 PENDING 标记证据。
+     * 确认后完整度把该维度视为完整，避免学生因无经历被误判为档案不完整。
+     */
+    private void addNoExperienceEvidence(List<ProfileEvidence> result, Long userId,
+                                         List<EvidenceSource> sources) {
+        if (result.size() >= MAX_EVIDENCE_PER_MESSAGE) {
+            return;
+        }
+        for (int i = sources.size() - 1; i >= 0; i--) {
+            EvidenceSource source = sources.get(i);
+            if (source == null || source.content() == null) {
+                continue;
+            }
+            if (NO_EXPERIENCE_PHRASES.stream().anyMatch(source.content()::contains)) {
+                result.add(evidence(userId, source.messageId(),
+                        ProfileEvidence.ENTITY_PROFILE, FIELD_NO_EXPERIENCE, "无工作经历"));
+                return;
+            }
+        }
     }
 
     /** 从最近一条用户消息向前找；同一事实重复出现时取最近一次。 */

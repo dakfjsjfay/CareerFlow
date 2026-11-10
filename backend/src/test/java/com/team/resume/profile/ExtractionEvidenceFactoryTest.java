@@ -241,4 +241,33 @@ class ExtractionEvidenceFactoryTest {
         assertThat(factory.build(1L, List.of(), objectMapper.readTree("{\"skills\":[\"Java\"]}")))
                 .isEmpty();
     }
+
+    @Test
+    void createsNoExperienceEvidenceWhenUserExplicitlySaysSo() throws Exception {
+        List<ProfileEvidence> evidence = factory.build(
+                1L,
+                List.of(new EvidenceSource(55L, "暑假中期主要负责前端开发，没有实习经历")),
+                objectMapper.readTree("{\"experiences\":[]}"));
+
+        assertThat(evidence)
+                .filteredOn(e -> "no_experience".equals(e.getFieldName()))
+                .singleElement()
+                .satisfies(e -> {
+                    assertThat(e.getEntityType()).isEqualTo(ProfileEvidence.ENTITY_PROFILE);
+                    assertThat(e.getEvidenceContent()).isEqualTo("无工作经历");
+                    assertThat(e.getSourceId()).isEqualTo(55L);
+                    assertThat(e.getConfirmationStatus())
+                            .isEqualTo(ProfileEvidence.STATUS_PENDING);
+                });
+    }
+
+    @Test
+    void doesNotCreateNoExperienceEvidenceWithoutExplicitStatement() throws Exception {
+        List<ProfileEvidence> evidence = factory.build(
+                1L,
+                List.of(new EvidenceSource(55L, "我做过一个学生管理系统")),
+                objectMapper.readTree("{\"experiences\":[]}"));
+
+        assertThat(evidence).noneMatch(e -> "no_experience".equals(e.getFieldName()));
+    }
 }

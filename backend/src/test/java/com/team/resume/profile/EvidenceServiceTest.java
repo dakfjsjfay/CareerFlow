@@ -81,6 +81,22 @@ class EvidenceServiceTest {
     }
 
     @Test
+    void listManualEvidenceWithoutChatSourceDoesNotFail() {
+        ProfileEvidence row = evidence(101L, ProfileEvidence.ENTITY_PROFILE, "real_name", "张三");
+        row.setSourceType(ProfileEvidence.SOURCE_MANUAL);
+        row.setSourceId(null);
+        row.setConfirmationStatus(ProfileEvidence.STATUS_CONFIRMED);
+        when(evidenceMapper.selectList(any())).thenReturn(List.of(row));
+
+        List<EvidenceVO> result = evidenceService.list(1L, "CONFIRMED");
+
+        assertThat(result).singleElement().satisfies(vo -> {
+            assertThat(vo.sourceType()).isEqualTo(ProfileEvidence.SOURCE_MANUAL);
+            assertThat(vo.sourceContent()).isNull();
+        });
+    }
+
+    @Test
     void listRejectsUnknownStatus() {
         assertThatThrownBy(() -> evidenceService.list(1L, "DONE"))
                 .isInstanceOf(BusinessException.class)
@@ -202,6 +218,24 @@ class EvidenceServiceTest {
         verify(evidenceMapper, times(1)).selectById(104L);
         verify(evidenceMapper, times(1)).markProcessed(
                 104L, 1L, ProfileEvidence.STATUS_CONFIRMED, 9L);
+    }
+
+    @Test
+    void confirmNoExperienceEvidenceMarksItConfirmedWithoutWritingProfileField() {
+        ProfileEvidence row = evidence(106L, ProfileEvidence.ENTITY_PROFILE,
+                ExtractionEvidenceFactory.FIELD_NO_EXPERIENCE, "无工作经历");
+        UserProfile profile = profile(9L);
+        when(evidenceMapper.selectById(106L)).thenReturn(row);
+        when(profileDataService.ensureProfile(1L)).thenReturn(profile);
+        when(evidenceMapper.markProcessed(106L, 1L, ProfileEvidence.STATUS_CONFIRMED, 9L))
+                .thenReturn(1);
+
+        ConfirmEvidenceResult result = evidenceService.confirm(1L, request(List.of(106L), true));
+
+        assertThat(result.confirmedCount()).isEqualTo(1);
+        assertThat(result.updatedFields()).containsExactly("noExperience");
+        verify(profileDataService, never()).applyProfileField(any(), any(), any());
+        verify(userProfileMapper, never()).updateById(any(UserProfile.class));
     }
 
     @Test
