@@ -1,10 +1,11 @@
 <template>
   <div class="module-title-7" :style="moduleTitleStyle">
     <hj-h1-1 :title="module.title" :style="moduleTitleFontStyle"></hj-h1-1>
-    <img src="@/assets/images/j1_span.png" alt="" />
+    <img src="@/assets/resume-template/images/j1_span.png" alt="" />
   </div>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import HjH11 from '../components/hj-h1-1.vue';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';

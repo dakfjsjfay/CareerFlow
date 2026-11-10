@@ -16,6 +16,7 @@
   </ul>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';
   import { numberToText, textToNumber } from '@/components/resume-template/util';
@@ -39,7 +40,6 @@
   // 单个列表样式
   const skillSpecialtiesLi: any = useGetCustomStyle(props.module, 'skillSpecialtiesLi');
 
-  console.log('技能特长', skillSpecialtiesLi);
 
   // 是否需要奇数列设置右边距
   const isOddLi = (index: number) => {

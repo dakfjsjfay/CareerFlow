@@ -66,6 +66,7 @@ function rewriteImports(text) {
     )
     .replaceAll('@/utils/common', '@/components/resume-template/util')
     .replaceAll('@/assets/images/people.jpg', '@/assets/resume-template/people.jpg')
+    .replaceAll('@/assets/images/', '@/assets/resume-template/images/')
     .replaceAll(
       "import.meta.glob('/src/assets/createTemplateImages/*'",
       "import.meta.glob('/src/assets/resume-template/images/*'",
@@ -75,7 +76,36 @@ function rewriteImports(text) {
 
 function copyRewritten(from, to) {
   ensureDir(path.dirname(to))
-  fs.writeFileSync(to, rewriteImports(fs.readFileSync(from, 'utf8')))
+  let text = rewriteImports(fs.readFileSync(from, 'utf8'))
+
+  // 第三方模板组件不参与本项目的严格类型检查；运行时仍需要补上 Vue API 导入
+  if (to.endsWith('.vue')) {
+    text = text.replace(/(<script[^>]*>)/, '$1\n// @ts-nocheck')
+  } else if (to.endsWith('.ts')) {
+    text = `// @ts-nocheck\n${text}`
+  }
+  text = text
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('console.log('))
+    .join('\n')
+
+  const vueApis = ['ref', 'computed', 'reactive', 'watch', 'watchEffect',
+    'onMounted', 'onBeforeUnmount', 'onUnmounted', 'nextTick', 'toRefs']
+  const imported = new Set()
+  for (const match of text.matchAll(/import\s*\{([^}]+)\}\s*from\s*['"]vue['"]/g)) {
+    match[1].split(',').forEach((name) => imported.add(name.trim().split(/\s+as\s+/)[0]))
+  }
+  const missing = vueApis.filter((api) =>
+    (text.includes(`${api}(`) || text.includes(`${api}<`)) && !imported.has(api))
+  if (missing.length > 0) {
+    const line = `import { ${missing.join(', ')} } from 'vue';`
+    if (to.endsWith('.vue')) {
+      text = text.replace(/(<script[^>]*>)/, `$1\n${line}`)
+    } else {
+      text = `${line}\n${text}`
+    }
+  }
+  fs.writeFileSync(to, text)
 }
 
 function resolveImport(fromFile, spec) {
@@ -167,6 +197,14 @@ for (const file of copied) {
   }
 }
 
+// 模块标题等组件还会引用 @/assets/images/*，一并复制到 resume-template/images
+const referencedImages = new Set()
+for (const file of copied) {
+  for (const match of fs.readFileSync(file, 'utf8').matchAll(/@\/assets\/images\/([\w.-]+)/g)) {
+    referencedImages.add(match[1])
+  }
+}
+
 // 3. 静态资源
 ensureDir(path.join(ROOT, 'src/assets/resume-template/images'))
 ensureDir(path.join(ROOT, 'src/assets/resume-template/covers'))
@@ -181,6 +219,12 @@ for (const image of ['baseInfo_2.png', 'baseInfo_5.png', 'baseInfo_6.png', 'titl
     path.join(SRC, 'src/assets/createTemplateImages', image),
     path.join(ROOT, 'src/assets/resume-template/images', image),
   )
+}
+for (const image of referencedImages) {
+  const from = path.join(SRC, 'src/assets/images', image)
+  if (fs.existsSync(from)) {
+    fs.copyFileSync(from, path.join(ROOT, 'src/assets/resume-template/images', image))
+  }
 }
 fs.copyFileSync(
   path.join(SRC, 'public/static/iconfont/iconfont.js'),

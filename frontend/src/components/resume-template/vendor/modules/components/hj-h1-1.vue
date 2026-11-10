@@ -2,6 +2,7 @@
   <h1 class="hj-p" :style="style">{{ title }}</h1>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   interface TP {
     title?: string;
     style?: any;
