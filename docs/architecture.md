@@ -86,7 +86,7 @@ flowchart TB
 | auth | 注册、登录、Spring Security + JWT 签发与校验 | 管「你是谁」 |
 | chat | 会话与消息管理 | 管「我们聊了什么」 |
 | profile | 个人档案、项目/工作经历、证据、完整度 | 管「用户有什么经历」 |
-| resume | 简历生成、版本、导出 | 管「简历怎么产出」 |
+| resume | 简历生成、版本、DOCX 导出、模板内容适配 | 管「简历怎么产出」 |
 | job | 岗位与 JD 解析 | 管「岗位数据」 |
 | matching | 技能矩阵、评分、推荐、投递建议 | 管「简历和岗位差多少」 |
 | optimization | 反向优化任务（追问/确认/重生成） | 管「怎么补差距」 |
@@ -121,17 +121,18 @@ Mapper（数据库操作）
 3. **事实校验**（Java）：抽取结果与用户原话对照——「学过 MySQL」不得归入项目技术栈；未确认信息标记 UNCONFIRMED，不得直接写档案
 4. 健壮性默认值：超时 60s、重试 1 次、失败返回 HTTP 502 + 友好提示；解析失败不落库
 5. API Key 只存后端环境变量，禁止写入代码/前端/日志/Git
+6. **延迟控制**：默认关闭模型思考阶段（`thinking.type=disabled`）并限制 `max_tokens=2500`；实测同一 Prompt 从 18s 降到 3s。需要更高质量时用 `DEEPSEEK_THINKING_ENABLED=true` 开启
 
 **ai 包目录：**
 
 ```
 ai/
 ├── DeepSeekClient.java     # HTTP 调用封装
-├── AIService.java          # 业务侧统一入口：extractProfile()/generateResume()/parseJd()/…
+├── AIService.java          # 业务侧统一入口：chat()/analyzeDocument()/generateResume()/…
 ├── PromptTemplate.java     # 提示词加载
 ├── AIResponseParser.java   # 结构校验与解析
-├── dto/                    # AIRequest / AIResponse
-└── prompt/                 # chat-prompt.txt / extract-prompt.txt / resume-prompt.txt / jd-prompt.txt / match-prompt.txt / pitch-prompt.txt
+├── dto/                    # ChatExtractionResult / DocumentAnalysisResult / ResumeGenerationResult
+└── prompts/                # chat-extract-prompt.txt / document-analyze-prompt.txt / resume-generate-prompt.txt
 ```
 
 ## 5. 前端结构
@@ -139,8 +140,9 @@ ai/
 ```
 frontend/src/
 ├── api/            # 所有后端接口请求（路径以 docs/api.md 为准，禁止自行编造）
-├── assets/         # 图片、图标
+├── assets/         # 图片、图标（含 resume-template 模板封面/背景图）
 ├── components/     # 公共组件
+│   └── resume-template/  # 20 套 resume-design 模板的只读渲染层（vendor + adapter + recommend）
 ├── layouts/        # 统一布局（侧边栏 + 顶栏）
 ├── router/         # 路由 + 守卫（JWT 校验）
 ├── stores/         # Pinia（用户状态）
@@ -173,3 +175,4 @@ frontend/src/
 4. **状态机后端强制**：投递状态流转由 Java 校验，非法流转 409，每次流转写历史
 5. **反馈回流**：岗位推荐排序参考该岗位历史反馈统计（已读率/面试率），如实声明为统计启发式
 6. **内容与样式分离**：简历以结构化 JSON 保存，前端/导出模板渲染 → 换模板不用重新调 AI
+7. **PDF/DOCX 分工**：PDF 由前端浏览器打印预览区，保证与模板样式一致；DOCX 由后端 POI 生成单栏专业排版。原因：20 套模板使用 flex，OpenHTMLtoPDF 无法正确渲染（见 decision-record D18）
