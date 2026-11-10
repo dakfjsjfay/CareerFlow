@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
 import com.team.resume.ai.dto.Message;
+import com.team.resume.ai.dto.ResumeGenerationResult;
 
 /**
  * 业务侧统一 AI 入口（架构文档 §4）。
@@ -80,5 +81,17 @@ public class AIService {
 
         String content = deepSeekClient.completeJson(messages);
         return responseParser.parseDocumentAnalysis(content);
+    }
+
+    /**
+     * 简历文案改写：输入是 {profile, baseContent} 的 JSON 字符串，
+     * 输出只包含 selfEvaluation 与项目/经历亮点，事实字段不经过模型。
+     */
+    public ResumeGenerationResult generateResume(String sourceJson) {
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.resumeGeneratePrompt()),
+                new Message("user", sourceJson));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseResumeGeneration(content);
     }
 }
