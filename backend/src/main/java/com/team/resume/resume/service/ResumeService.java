@@ -17,12 +17,14 @@ import com.team.resume.common.BusinessException;
 import com.team.resume.profile.service.ProfileService;
 import com.team.resume.profile.vo.ProfileVO;
 import com.team.resume.resume.dto.CreateResumeRequest;
+import com.team.resume.resume.dto.ExportResumeRequest;
 import com.team.resume.resume.dto.GenerateResumeRequest;
 import com.team.resume.resume.dto.SaveVersionRequest;
 import com.team.resume.resume.entity.Resume;
 import com.team.resume.resume.entity.ResumeVersion;
 import com.team.resume.resume.mapper.ResumeMapper;
 import com.team.resume.resume.mapper.ResumeVersionMapper;
+import com.team.resume.resume.vo.ExportFile;
 import com.team.resume.resume.vo.ResumeContent;
 import com.team.resume.resume.vo.ResumeDetailVO;
 import com.team.resume.resume.vo.ResumeGenerateResultVO;
@@ -51,6 +53,7 @@ public class ResumeService {
     private final ProfileService profileService;
     private final ResumeContentAssembler assembler;
     private final ResumeAiService aiService;
+    private final ResumeDocxExporter docxExporter;
     private final ObjectMapper objectMapper;
 
     public ResumeService(ResumeMapper resumeMapper,
@@ -59,6 +62,7 @@ public class ResumeService {
                          ProfileService profileService,
                          ResumeContentAssembler assembler,
                          ResumeAiService aiService,
+                         ResumeDocxExporter docxExporter,
                          ObjectMapper objectMapper) {
         this.resumeMapper = resumeMapper;
         this.versionMapper = versionMapper;
@@ -66,6 +70,7 @@ public class ResumeService {
         this.profileService = profileService;
         this.assembler = assembler;
         this.aiService = aiService;
+        this.docxExporter = docxExporter;
         this.objectMapper = objectMapper;
     }
 
@@ -187,6 +192,35 @@ public class ResumeService {
                 resumeId, version.getId(), version.getVersionNumber(), version.getContent());
     }
 
+    /**
+     * 导出指定版本的 DOCX。必须显式传 versionId，避免「导出最新版」破坏版本可追溯性。
+     */
+    public ExportFile exportDocx(Long userId, Long resumeId, ExportResumeRequest request) {
+        Resume resume = requireOwned(userId, resumeId);
+        if (request == null || request.getVersionId() == null) {
+            throw new BusinessException(400, "versionId 不能为空");
+        }
+        if (request.getFormat() == null || !"DOCX".equalsIgnoreCase(request.getFormat())) {
+            throw new BusinessException(400, "仅支持 DOCX 导出");
+        }
+
+        ResumeVersion version = versionService.requireOwned(userId, resumeId, request.getVersionId());
+        ResumeContent content;
+        try {
+            content = objectMapper.treeToValue(version.getContent(), ResumeContent.class);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(500, "简历内容损坏");
+        }
+        if (content == null) {
+            throw new BusinessException(500, "简历内容损坏");
+        }
+
+        String filename = sanitizeFilename(resume.getResumeName())
+                + "-v" + version.getVersionNumber() + ".docx";
+        byte[] bytes = docxExporter.export(content, resume.getResumeName(), version.getVersionNumber());
+        return new ExportFile(bytes, filename);
+    }
+
     public Resume requireOwned(Long userId, Long resumeId) {
         Resume resume = resumeMapper.selectById(resumeId);
         if (resume == null) {
@@ -196,6 +230,11 @@ public class ResumeService {
             throw new BusinessException(403, "无权操作该简历");
         }
         return resume;
+    }
+
+    private static String sanitizeFilename(String name) {
+        String value = name == null ? "" : name.trim().replaceAll("[\\\\/:*?\"<>|]", "_");
+        return value.isEmpty() ? "resume" : value;
     }
 
     private static String validateTemplateId(String templateId) {

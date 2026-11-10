@@ -51,12 +51,15 @@ class ResumeServiceTest {
     @Mock
     private com.team.resume.resume.service.ResumeAiService aiService;
 
+    @Mock
+    private com.team.resume.resume.service.ResumeDocxExporter docxExporter;
+
     private ResumeService service;
 
     @BeforeEach
     void setUp() {
         service = new ResumeService(resumeMapper, versionMapper, versionService,
-                profileService, assembler, aiService, new ObjectMapper());
+                profileService, assembler, aiService, docxExporter, new ObjectMapper());
     }
 
     @Test
