@@ -12,8 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.team.resume.common.Result;
 import com.team.resume.resume.dto.CreateResumeRequest;
+import com.team.resume.resume.dto.GenerateResumeRequest;
+import com.team.resume.resume.dto.SaveVersionRequest;
 import com.team.resume.resume.service.ResumeService;
 import com.team.resume.resume.vo.ResumeDetailVO;
+import com.team.resume.resume.vo.ResumeGenerateResultVO;
 import com.team.resume.resume.vo.ResumeSummaryVO;
 import com.team.resume.resume.vo.ResumeVersionSummaryVO;
 import com.team.resume.resume.vo.ResumeVersionVO;
@@ -41,6 +44,20 @@ public class ResumeController {
     @GetMapping
     public Result<List<ResumeSummaryVO>> list(@AuthenticationPrincipal Long userId) {
         return Result.ok(resumeService.list(userId));
+    }
+
+    @PostMapping("/{id}/generate")
+    public Result<ResumeGenerateResultVO> generate(@AuthenticationPrincipal Long userId,
+                                                   @PathVariable("id") Long id,
+                                                   @RequestBody GenerateResumeRequest request) {
+        return Result.ok(resumeService.generate(userId, id, request));
+    }
+
+    @PostMapping("/{id}/versions")
+    public Result<ResumeGenerateResultVO> saveVersion(@AuthenticationPrincipal Long userId,
+                                                      @PathVariable("id") Long id,
+                                                      @RequestBody SaveVersionRequest request) {
+        return Result.ok(resumeService.saveVersion(userId, id, request));
     }
 
     @GetMapping("/{id}")
