@@ -121,6 +121,8 @@
 ```
 
 - **自动确认规则**：基础信息与教育经历字段（姓名、学校、专业等）信息明确时，可抽取后直接 CONFIRMED 并写入；技能、项目、工作/实习经历**必须用户确认**（涉及归因风险，如「学过 MySQL」≠「项目用了 MySQL」）
+- **D4 实现策略**：所有抽取项（含基础信息与教育经历）统一先落 PENDING，由用户显式确认；自动确认暂不启用
+- **事实校验（Java）**：落 PENDING 前逐项校验抽取内容能否在本轮用户原话中找到依据（归一化包含 / 数字匹配 / 2-gram 覆盖率 ≥ 60%），不通过则丢弃；Prompt 中的示例内容禁止作为真实信息输出
 - 用户拒绝的信息标记 REJECTED，**不允许进入已确认档案，也不允许出现在简历中**
 - 简历生成只使用「已确认且有证据」的信息
 
@@ -136,7 +138,38 @@
 | /api/profile/evidence/confirm | POST | ⭐ 确认/拒绝抽取信息（二轮审查新增） |
 | /api/profile/completeness | GET | 完整度（Java 计算 6 维度，见 database.md §6） |
 
-### 6.1 确认接口
+### 6.1 证据列表
+
+GET /api/profile/evidence?status=PENDING
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": [
+    {
+      "id": 101,
+      "entityType": "PROJECT",
+      "entityId": null,
+      "fieldName": "project",
+      "sourceType": "CHAT",
+      "sourceId": 55,
+      "sourceContent": "我用 Java 做过学生管理系统",
+      "evidenceContent": "{\"projectName\":\"学生管理系统\",\"techStack\":[\"Java\"]}",
+      "confirmationStatus": "PENDING",
+      "createdAt": "2026-11-10T10:30:00"
+    }
+  ]
+}
+```
+
+说明：
+- status 只允许 PENDING / CONFIRMED / REJECTED，缺省 PENDING；非法值 → 400；结果按 id 倒序
+- sourceContent 为来源消息原文（sourceType=CHAT 时经 sourceId 关联 chat_message），用于展示「AI 从哪句话里抽取」；sourceId 可能指向历史用户消息，而不是本轮消息
+- evidenceContent：PROFILE / SKILL 为文本值；PROJECT / EXPERIENCE 为 JSON（projectName、role、description、techStack、startDate、endDate 或 company、position、description、achievements、startDate、endDate）
+
+### 6.2 确认接口
 
 请求：
 
@@ -151,17 +184,25 @@
   "code": 200, "message": "success",
   "data": {
     "confirmedCount": 2,
-    "updatedFields": ["skills", "project.tech_stack"]
+    "updatedFields": ["skills", "project.techStack"]
   }
 }
 ```
 
 行为与校验：
 - 逐条校验证据归属当前用户（不归属 → 403；不存在 → 404；已处理 → 409 并返回其当前状态）
+- 同一请求中重复的 evidenceId 只处理一次；单次最多 100 条
+- `confirmedCount` 只统计本次真正变为 CONFIRMED 的证据；`confirmed=false` 时为 0，`updatedFields` 为空
+- `updatedFields` 使用 API camelCase 字段路径（如 `realName`、`graduationYear`、`project.techStack`）
 - `confirmed=true`：evidence → CONFIRMED，按 entity_type/field_name 映射写入档案实体表（PROFILE→user_profile；SKILL→user_profile.skills；PROJECT/EXPERIENCE→对应实体表，entity_id 为 NULL 时创建实体并回填）
+- 并发确认使用「PENDING 条件更新」，只有仍为 PENDING 的证据能流转，冲突 → 409
 - `confirmed=false`：evidence → REJECTED，不写入任何档案数据
 
-完整度返回：
+### 6.3 完整度
+
+GET /api/profile/completeness
+
+返回：
 
 ```json
 {
@@ -180,56 +221,245 @@
 }
 ```
 
+评分细则见 database.md §6；技能/项目/经历三个逻辑维度采用分级计分，保证雷达图结果可解释。
+
+### 6.4 档案读写与经历 CRUD
+
+GET /api/profile 返回（只含已确认数据；无档案时返回空结构，不 404）：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "id": 1,
+    "realName": "张三", "phone": "13800000000",
+    "school": "某某大学", "major": "计算机科学与技术", "degree": "本科", "graduationYear": 2027,
+    "skills": ["Java", "MySQL"],
+    "targetPosition": "Java 后端", "targetCity": "杭州", "expectedSalary": "8-12K",
+    "projects": [
+      { "id": 21, "projectName": "学生管理系统", "role": "后端开发", "description": "增删改查", "techStack": ["Java", "MySQL"], "startDate": "2025-03-01", "endDate": "2025-06-30" }
+    ],
+    "experiences": [
+      { "id": 31, "company": "某某科技", "position": "后端实习生", "description": "参与接口开发", "achievements": "完成 3 个接口", "startDate": "2025-07-01", "endDate": "2025-09-30" }
+    ]
+  }
+}
+```
+
+PUT /api/profile 请求（字段全部可选；null 表示不修改，空串表示清空，skills 传数组表示整体替换）：
+
+```json
+{
+  "realName": "张三",
+  "phone": "13800000000",
+  "school": "某某大学",
+  "major": "计算机科学与技术",
+  "degree": "本科",
+  "graduationYear": 2027,
+  "skills": ["Java", "MySQL"],
+  "targetPosition": "Java 后端",
+  "targetCity": "杭州",
+  "expectedSalary": "8-12K"
+}
+```
+
+行为：每个实际变更的字段写一条 `source_type=MANUAL`、`confirmation_status=CONFIRMED` 的证据（技能证据 `entity_type=SKILL`）；返回更新后的档案。
+
+项目/经历：
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/profile/projects | POST | 创建项目，写 MANUAL 证据 |
+| /api/profile/projects/{id} | PUT | 更新项目，写一条新的 MANUAL 证据 |
+| /api/profile/projects/{id} | DELETE | 删除项目及其证据 |
+| /api/profile/experiences | POST / PUT / DELETE /{id} | 工作/实习经历同上 |
+
+项目请求：
+
+```json
+{
+  "projectName": "学生管理系统",
+  "role": "后端开发",
+  "description": "增删改查",
+  "techStack": ["Java", "MySQL"],
+  "startDate": "2025-03-01",
+  "endDate": "2025-06-30"
+}
+```
+
+经历请求：
+
+```json
+{
+  "company": "某某科技",
+  "position": "后端实习生",
+  "description": "参与接口开发",
+  "achievements": "完成 3 个接口",
+  "startDate": "2025-07-01",
+  "endDate": "2025-09-30"
+}
+```
+
+校验：记录不存在 → 404；不属于当前用户 → 403；`projectName`/`company` 为空 → 400。删除返回 `{ "code": 200, "message": "success", "data": null }`。
+
 ## 7. 简历（resumes）
 
 | 接口 | 方法 | 说明 |
 |---|---|---|
 | /api/resumes | POST | 创建简历主体 |
-| /api/resumes | GET | 简历列表（含 currentVersionId） |
-| /api/resumes/{id} | GET | 简历详情（含当前版本） |
+| /api/resumes | GET | 简历列表（含 currentVersionId / currentVersionNumber / templateId） |
+| /api/resumes/{id} | GET | 简历详情（含当前版本内容） |
 | /api/resumes/{id}/generate | POST | AI 生成新版本（锁定事务 + UNIQUE 约束，**永不覆盖旧版本**） |
-| /api/resumes/{id}/versions | GET | 历史版本列表 |
+| /api/resumes/{id}/versions | POST | 手动保存新版本（编辑 / 换模板 / 恢复；**永不覆盖旧版本**） |
+| /api/resumes/{id}/versions | GET | 历史版本列表（不含 content） |
 | /api/resumes/{id}/versions/{versionId} | GET | 指定版本内容 |
-| /api/resumes/{id}/export | POST | 导出 PDF / Word（**必须指定 versionId**） |
+| /api/resumes/{id}/export | POST | 导出 DOCX（**必须指定 versionId**；PDF 由前端浏览器打印生成） |
 
-生成请求：
+### 7.1 创建 / 列表 / 详情
+
+创建请求（名称可选，缺省「我的简历」，长度 ≤100）：
 
 ```json
-{ "targetJobId": 1001, "generationReason": "JOB_TARGETED" }
+{ "resumeName": "Java 开发实习生简历" }
 ```
 
-生成返回（content 为结构化 JSON，前端/导出端套模板渲染——内容与样式分离）：
+列表项：
+
+```json
+{
+  "id": 1, "resumeName": "我的简历",
+  "currentVersionId": 3, "currentVersionNumber": 3,
+  "templateId": "6746fe472f0052cb6a9365aa",
+  "updatedAt": "2026-11-10T12:00:00"
+}
+```
+
+详情（尚未生成版本时 `currentVersionId` / `currentVersion` 为 null）：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "id": 1, "resumeName": "我的简历",
+    "currentVersionId": 3, "currentVersionNumber": 3,
+    "currentVersion": {
+      "versionId": 3, "versionNumber": 3,
+      "generationReason": "INITIAL",
+      "templateId": "6746fe472f0052cb6a9365aa",
+      "content": {}, "createdAt": "2026-11-10T12:00:00"
+    }
+  }
+}
+```
+
+### 7.2 生成新版本
+
+请求：
+
+```json
+{
+  "templateId": "6746fe472f0052cb6a9365aa",
+  "targetJobId": null,
+  "generationReason": "INITIAL"
+}
+```
+
+`templateId` 必填（≤64）；`generationReason` ∈ `INITIAL / JOB_TARGETED / OPTIMIZATION / REGENERATE`。
+后端从 **CONFIRMED** 档案确定性组装事实，AI 只改写 `selfEvaluation` 与项目/经历亮点，并逐句事实校验；`targetJobId` 本期只存入 `content.meta`，JD 适配在 D10。
+
+生成/保存返回：
 
 ```json
 {
   "code": 200, "message": "success",
   "data": {
     "resumeId": 1, "versionId": 3, "versionNumber": 3,
-    "content": {
-      "personalInfo": {}, "education": [], "skills": [],
-      "projects": [], "experiences": [], "selfEvaluation": ""
-    }
+    "content": {}
   }
 }
 ```
 
-校验与错误：简历不属于当前用户 → 403；生成时只使用 CONFIRMED 数据；并发生成由锁定事务 + UNIQUE(resume_id, version_number) 保证版本号不重复。
+### 7.3 手动保存新版本
 
-### 7.1 导出
-
-请求（⭐ versionId 必填，**不允许默认导出最新版本**，否则版本管理失去意义）：
+编辑内容、切换模板、从旧版本恢复都走这里；服务端覆盖 `content.meta`：
 
 ```json
-{ "versionId": 3, "format": "PDF" }
+{
+  "content": {},
+  "templateId": "6746fe472f0052cb6a9365aa",
+  "generationReason": "MANUAL_EDIT"
+}
 ```
 
-| format | 输出 | Content-Type（二轮审查修正） |
+`generationReason` ∈ `MANUAL_EDIT / TEMPLATE_SWITCH / RESTORE`；服务端设置 `meta.source = "MANUAL"`、`meta.templateId`、`meta.generatedAt`、`meta.generationReason`。
+
+### 7.4 简历内容（ResumeContent）
+
+内容与样式分离：`content` 只描述事实，模板由 `meta.templateId` 决定。
+
+```json
+{
+  "meta": {
+    "templateId": "6746fe472f0052cb6a9365aa",
+    "templateName": "双色标签经典简历模板",
+    "generatedAt": "2026-11-10T12:00:00",
+    "source": "AI",
+    "generationReason": "INITIAL",
+    "targetJobId": null,
+    "warnings": []
+  },
+  "personalInfo": {
+    "realName": "张同学", "phone": "13800000000",
+    "email": null, "city": null, "avatar": null,
+    "school": "深圳大学", "major": "软件工程", "degree": "本科",
+    "graduationYear": 2028, "yearsOfExperience": 0,
+    "abstract": "软件工程在读，掌握 Java 与 MySQL。"
+  },
+  "jobIntention": { "targetPosition": "Java 开发实习生", "targetCity": "深圳", "expectedSalary": "面议" },
+  "education": [
+    { "school": "深圳大学", "major": "软件工程", "degree": "本科",
+      "graduationYear": 2028, "startDate": null, "endDate": null }
+  ],
+  "skills": ["Java", "MySQL"],
+  "projects": [
+    { "projectName": "学生信息管理系统", "role": "后端开发",
+      "description": "……", "techStack": ["Java", "MySQL"],
+      "highlights": [], "startDate": "2025-03-01", "endDate": "2025-06-30" }
+  ],
+  "experiences": [
+    { "company": "某科技有限公司", "position": "后端实习生", "type": "INTERNSHIP",
+      "description": "……", "achievements": "……", "highlights": [],
+      "startDate": "2025-07-01", "endDate": "2025-09-30" }
+  ],
+  "selfEvaluation": "……"
+}
+```
+
+说明：`experiences[].type` 由 Java 判定（岗位/公司含「实习 / Intern」→ `INTERNSHIP`，否则 `WORK`）；`highlights` 为 AI 生成且通过事实校验的亮点；未提供的字段为 null，模板渲染时隐藏。
+
+### 7.5 导出 DOCX
+
+请求（⭐ versionId 必填，**不允许默认导出最新版本**）：
+
+```json
+{ "versionId": 3, "format": "DOCX" }
+```
+
+| format | 输出 | Content-Type |
 |---|---|---|
-| PDF | .pdf | `application/pdf` |
 | DOCX | .docx | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
 
-校验与错误：versionId 缺失 → 400；版本不存在或不属于当前用户 → 403/404；format 非 PDF/DOCX → 400。
-实现技术（已确定）：PDF = OpenHTMLtoPDF；Word = Apache POI XWPF。
+响应为二进制流，`Content-Disposition: attachment; filename*=UTF-8''...`；文件名为 `{resumeName}-v{versionNumber}.docx`。
+PDF 由前端把预览区交给浏览器打印生成（与模板样式 100% 一致），不经过后端。
+
+### 7.6 校验与错误
+
+- 简历/版本不存在 → 404；不属于当前用户 → 403。
+- `templateId` 缺失/超长、`generationReason` 非法、`versionId` 缺失、`format` 非 DOCX → 400。
+- 档案没有任何 CONFIRMED 教育/技能/项目/经历 → 400，提示先完善档案。
+- AI 调用失败（超时 / HTTP 错误 / JSON 解析失败）→ 502，不创建版本。
+- AI 输出事实校验失败 → 使用确定性兜底文案，版本照常创建，`content.meta.warnings` 含 `AI_FACT_CHECK_FALLBACK`。
+- 并发生成由锁定事务 + `UNIQUE(resume_id, version_number)` 保证；冲突返回 409「版本冲突，请重试」。
 
 ## 8. 岗位（jobs）
 
@@ -494,6 +724,8 @@ JD 解析请求：
 
 其余字段名一致（如 id、skill、weight、note）。**新增字段必须先在本文件登记。**
 
+> `sourceContent`（§6.1）为派生字段：由 sourceType=CHAT + sourceId 关联 chat_message.content，不落库。
+
 ## 14. 接口 ↔ P0 功能覆盖检查
 
 | P0 功能 | 覆盖接口 |
@@ -562,7 +794,7 @@ JD 解析请求：
 - PDF：优先抽取文本层；扫描件渲染前 5 页做 OCR（PDFBox）
 - 图片：使用本地 OCR（Tess4J，中文 + 英文语言包随应用打包），不调用外部视觉服务
 - ZIP 内最多 OCR 3 个图片/PDF，避免压缩包导致长时间占用
-- 文件分析包含 AI 调用，通常 10~60 秒；PDF/扫描件或多文件可能达到 1~2 分钟，前端对该接口单独设置 300 秒超时
+- 文件分析包含 AI 调用；默认关闭 thinking 后通常几秒到 20 秒，复杂 PDF/扫描件或多文件可能达到 1 分钟；前端对该接口单独设置 300 秒超时
 - 分析结果只是**待确认候选**，不直接写入档案或简历（证据链规则）
 - 不支持的文件类型 / 空文件 / 超过大小限制 → 400
 - AI 失败 → 502，不产生任何档案数据
