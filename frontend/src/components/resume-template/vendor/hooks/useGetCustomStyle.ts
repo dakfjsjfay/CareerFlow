@@ -6,7 +6,7 @@ import type { IHJNewSchema, IModule } from '../types/IHJNewSchema';
 const images = import.meta.glob('/src/assets/resume-template/images/*', { eager: true });
 
 // 根据prop返回自定义样式
-export const useGetCustomStyle = (module: IModule | IHJNewSchema, prop: string) => {
+export const useGetCustomStyle = (module: any, prop: string) => {
   const loadBackgroundImage = (backgroundPath: string, element: any) => {
     if (backgroundPath) {
       const isOnlineUrl = backgroundPath.includes('https://');

@@ -9,7 +9,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '6746fe472f0052cb6a9365aa.json',
-    cover: new URL('../../assets/resume-template/covers/6746fe472f0052cb6a9365aa.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/6746fe472f0052cb6a9365aa.jpg', import.meta.url).href,
     keywords: ['通用', '经典'],
   },
   {
@@ -20,7 +20,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'LeftRightPage',
     file: '674701372f0052cb6a93660b.json',
-    cover: new URL('../../assets/resume-template/covers/674701372f0052cb6a93660b.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/674701372f0052cb6a93660b.jpg', import.meta.url).href,
     keywords: ['通用', '时尚', '双栏'],
   },
   {
@@ -31,7 +31,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '674704bd2f0052cb6a9366c5.json',
-    cover: new URL('../../assets/resume-template/covers/674704bd2f0052cb6a9366c5.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/674704bd2f0052cb6a9366c5.jpg', import.meta.url).href,
     keywords: ['通用', '简洁'],
   },
   {
@@ -42,7 +42,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '674705f82f0052cb6a9366f9.json',
-    cover: new URL('../../assets/resume-template/covers/674705f82f0052cb6a9366f9.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/674705f82f0052cb6a9366f9.jpg', import.meta.url).href,
     keywords: ['通用', '创意'],
   },
   {
@@ -53,7 +53,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '674708c52f0052cb6a9367bb.json',
-    cover: new URL('../../assets/resume-template/covers/674708c52f0052cb6a9367bb.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/674708c52f0052cb6a9367bb.jpg', import.meta.url).href,
     keywords: ['通用', '简洁'],
   },
   {
@@ -64,7 +64,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '67470a292f0052cb6a936802.json',
-    cover: new URL('../../assets/resume-template/covers/67470a292f0052cb6a936802.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67470a292f0052cb6a936802.jpg', import.meta.url).href,
     keywords: ['通用', '经典'],
   },
   {
@@ -75,7 +75,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '67470f622f0052cb6a9368a7.json',
-    cover: new URL('../../assets/resume-template/covers/67470f622f0052cb6a9368a7.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67470f622f0052cb6a9368a7.jpg', import.meta.url).href,
     keywords: ['通用', '经典'],
   },
   {
@@ -86,7 +86,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'Page_1',
     file: '674ef7a1499a3d6818e5f3e9.json',
-    cover: new URL('../../assets/resume-template/covers/674ef7a1499a3d6818e5f3e9.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/674ef7a1499a3d6818e5f3e9.jpg', import.meta.url).href,
     keywords: ['通用', '简洁'],
   },
   {
@@ -97,7 +97,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '675038c5c016bbf823ea30eb.json',
-    cover: new URL('../../assets/resume-template/covers/675038c5c016bbf823ea30eb.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/675038c5c016bbf823ea30eb.jpg', import.meta.url).href,
     keywords: ['技术', '创意', '后端', 'java'],
   },
   {
@@ -108,7 +108,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '67503cd2c016bbf823ea3130.json',
-    cover: new URL('../../assets/resume-template/covers/67503cd2c016bbf823ea3130.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67503cd2c016bbf823ea3130.jpg', import.meta.url).href,
     keywords: ['创意', '设计', '视觉'],
   },
   {
@@ -119,7 +119,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '67503de5c016bbf823ea317d.json',
-    cover: new URL('../../assets/resume-template/covers/67503de5c016bbf823ea317d.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67503de5c016bbf823ea317d.jpg', import.meta.url).href,
     keywords: ['创意', '设计', '中国风'],
   },
   {
@@ -130,7 +130,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'LeftRightPage',
     file: '67505d9ac016bbf823ea3497.json',
-    cover: new URL('../../assets/resume-template/covers/67505d9ac016bbf823ea3497.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67505d9ac016bbf823ea3497.jpg', import.meta.url).href,
     keywords: ['通用', '时尚', '双栏'],
   },
   {
@@ -141,7 +141,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'LeftRightPage',
     file: '6756f8ac8f0b47d968a0e98c.json',
-    cover: new URL('../../assets/resume-template/covers/6756f8ac8f0b47d968a0e98c.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/6756f8ac8f0b47d968a0e98c.jpg', import.meta.url).href,
     keywords: ['贸易', '买手', '外贸', '电商'],
   },
   {
@@ -152,7 +152,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "会计",
     pageName: 'BasePage',
     file: '67584681ad08c962be2e9da4.json',
-    cover: new URL('../../assets/resume-template/covers/67584681ad08c962be2e9da4.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67584681ad08c962be2e9da4.jpg', import.meta.url).href,
     keywords: ['会计', '财务', '金融'],
   },
   {
@@ -163,7 +163,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "后端开发",
     pageName: 'BasePage',
     file: '676015175e80d518fa0c1985.json',
-    cover: new URL('../../assets/resume-template/covers/676015175e80d518fa0c1985.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/676015175e80d518fa0c1985.jpg', import.meta.url).href,
     keywords: ['算法', '后端', '技术', 'java'],
   },
   {
@@ -174,7 +174,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "新媒体运营",
     pageName: 'BasePage',
     file: '67615d45e4dde1f4d601c8c3.json',
-    cover: new URL('../../assets/resume-template/covers/67615d45e4dde1f4d601c8c3.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67615d45e4dde1f4d601c8c3.jpg', import.meta.url).href,
     keywords: ['运营', '新媒体', '内容'],
   },
   {
@@ -185,7 +185,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "交互设计",
     pageName: 'BasePage',
     file: '676d4a717017be6da0dfef21.json',
-    cover: new URL('../../assets/resume-template/covers/676d4a717017be6da0dfef21.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/676d4a717017be6da0dfef21.jpg', import.meta.url).href,
     keywords: ['交互', '设计', '前端', 'ui'],
   },
   {
@@ -196,7 +196,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "后端开发",
     pageName: 'BasePage',
     file: '67b5e1793370f88ef9258aa6.json',
-    cover: new URL('../../assets/resume-template/covers/67b5e1793370f88ef9258aa6.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/67b5e1793370f88ef9258aa6.jpg', import.meta.url).href,
     keywords: ['java', '后端', '后端开发', '技术'],
   },
   {
@@ -207,7 +207,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "",
     pageName: 'BasePage',
     file: '6787c0990a3df5adfa37071d.json',
-    cover: new URL('../../assets/resume-template/covers/6787c0990a3df5adfa37071d.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/6787c0990a3df5adfa37071d.jpg', import.meta.url).href,
     keywords: ['通用', '简洁'],
   },
   {
@@ -218,7 +218,7 @@ export const TEMPLATES: TemplateMeta[] = [
     post: "文案策划",
     pageName: 'BasePage',
     file: '6880c88c20e3189056304800.json',
-    cover: new URL('../../assets/resume-template/covers/6880c88c20e3189056304800.png', import.meta.url).href,
+    cover: new URL('../../assets/resume-template/covers/6880c88c20e3189056304800.jpg', import.meta.url).href,
     keywords: ['文案', '策划', '运营', '内容'],
   },
 ]

@@ -17,7 +17,7 @@
             :model-value="activeVersion?.versionId ?? undefined"
             size="small"
             class="version-select"
-            @change="(value) => handleSelectVersion(Number(value))"
+            @change="onVersionChange"
           >
             <el-option
               v-for="version in versions"
@@ -169,6 +169,10 @@ const REASON_LABELS: Record<string, string> = {
 
 function reasonLabel(reason: string): string {
   return REASON_LABELS[reason] ?? reason
+}
+
+function onVersionChange(value: unknown): void {
+  void handleSelectVersion(Number(value))
 }
 
 function errorMessage(error: unknown, fallback: string): string {

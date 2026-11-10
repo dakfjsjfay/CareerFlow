@@ -50,4 +50,9 @@ onMounted(loadIconfont)
   background: #fff;
   overflow: hidden;
 }
+
+/* 模板按 2 个字的名字设计，3-4 个字的中文名容易竖向折行 */
+.resume-template-renderer :deep(h1) {
+  white-space: nowrap;
+}
 </style>
