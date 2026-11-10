@@ -126,6 +126,8 @@ import ResumeTemplateRenderer from '@/components/resume-template/ResumeTemplateR
 import { useResume } from '@/composables/useResume'
 import { printResume } from '@/utils/exportPdf'
 
+import './print.css'
+
 const {
   resumes,
   active,

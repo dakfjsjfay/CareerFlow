@@ -1,0 +1,43 @@
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #resume-print-area,
+  #resume-print-area * {
+    visibility: visible !important;
+  }
+
+  #resume-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    padding: 0;
+    width: 820px;
+    /* 820px × 0.968 ≈ A4 96dpi 宽度 794px */
+    zoom: 0.968;
+    box-shadow: none !important;
+    background: #fff;
+  }
+
+  #resume-print-area .module-box,
+  #resume-print-area .create-template-elemet {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .toolbar,
+  .editor-pane,
+  .el-dialog,
+  .el-drawer,
+  .el-message,
+  .el-notification {
+    display: none !important;
+  }
+}
