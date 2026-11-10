@@ -101,17 +101,23 @@ public class EvidenceService {
         }
         Map<Long, String> sourceContents = loadSourceContents(rows);
         return rows.stream()
-                .map(row -> new EvidenceVO(
-                        row.getId(),
-                        row.getEntityType(),
-                        row.getEntityId(),
-                        row.getFieldName(),
-                        row.getSourceType(),
-                        row.getSourceId(),
-                        sourceContents.get(row.getSourceId()),
-                        row.getEvidenceContent(),
-                        row.getConfirmationStatus(),
-                        row.getCreatedAt()))
+                .map(row -> {
+                    // MANUAL 证据没有 sourceId；Map.of() 不接受 null 键
+                    String sourceContent = row.getSourceId() == null
+                            ? null
+                            : sourceContents.get(row.getSourceId());
+                    return new EvidenceVO(
+                            row.getId(),
+                            row.getEntityType(),
+                            row.getEntityId(),
+                            row.getFieldName(),
+                            row.getSourceType(),
+                            row.getSourceId(),
+                            sourceContent,
+                            row.getEvidenceContent(),
+                            row.getConfirmationStatus(),
+                            row.getCreatedAt());
+                })
                 .toList();
     }
 
@@ -162,7 +168,11 @@ public class EvidenceService {
             }
             switch (evidence.getEntityType()) {
                 case ProfileEvidence.ENTITY_PROFILE -> {
-                    if (profileDataService.applyProfileField(
+                    if (ExtractionEvidenceFactory.FIELD_NO_EXPERIENCE
+                            .equals(evidence.getFieldName())) {
+                        // 「无经历」只作为完整度标记，不写 user_profile 字段
+                        updatedFields.add(apiFieldName(evidence.getFieldName()));
+                    } else if (profileDataService.applyProfileField(
                             profile, evidence.getFieldName(), evidence.getEvidenceContent())) {
                         updatedFields.add(apiFieldName(evidence.getFieldName()));
                         profileDirty = true;
@@ -246,6 +256,7 @@ public class EvidenceService {
             case "target_position" -> "targetPosition";
             case "target_city" -> "targetCity";
             case "expected_salary" -> "expectedSalary";
+            case "no_experience" -> "noExperience";
             default -> fieldName;
         };
     }
