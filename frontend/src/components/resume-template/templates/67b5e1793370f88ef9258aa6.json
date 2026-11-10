@@ -1,0 +1,2696 @@
+{
+  "id": "0d6088c279bc40308ee6606d032bc693",
+  "version": "1.0.0",
+  "componentsTree": [
+    {
+      "id": "6a5537c8a9924e319f7cefa6d1164fbf",
+      "componentName": "BaseInfo_10",
+      "commentType": "",
+      "icon": "",
+      "title": "基本资料",
+      "description": "基本信息模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "BaseInfo_10.png"
+      },
+      "keywords": "基础信息",
+      "category": "base_info",
+      "props": {
+        "title": {
+          "chName": "模块标题",
+          "show": false,
+          "iconfont": "",
+          "config": true
+        },
+        "name": {
+          "chName": "姓名",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "age": {
+          "chName": "年龄",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "address": {
+          "chName": "地址",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "avatar": {
+          "chName": "证件照",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "workService": {
+          "chName": "工作年限",
+          "show": false,
+          "iconfont": "",
+          "config": true
+        },
+        "phoneNumber": {
+          "chName": "联系电话",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "email": {
+          "chName": "邮箱地址",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "abstract": {
+          "chName": "一句话简介",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "degree": {
+          "chName": "学历",
+          "show": false,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "row",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "backgroundPath": "",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "fontFamily": "微软雅黑",
+        "color": "#121c26",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "static",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 0,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)",
+        "height": 200
+      },
+      "customCss": [
+        {
+          "title": "信息模块样式",
+          "prop": "userInfoBlock",
+          "css": {
+            "display": "flex",
+            "flex": 1,
+            "flexDirection": "column",
+            "alignItems": "flex-start",
+            "justifyContent": "flex-start",
+            "background": "rgba(255, 255, 255, 0.63)",
+            "height": 145,
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 20,
+              "bottom": 0,
+              "left": 0
+            }
+          }
+        },
+        {
+          "title": "姓名简介整体样式",
+          "prop": "nameAbstractBox",
+          "css": {
+            "width": "100%",
+            "display": "flex",
+            "flexDirection": "column",
+            "alignItems": "flex-start",
+            "justifyContent": "flex-start",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "padding": {
+              "top": 10,
+              "right": 0,
+              "bottom": 0,
+              "left": 5
+            },
+            "margin": {
+              "top": 0,
+              "right": 20,
+              "bottom": 0,
+              "left": 0
+            }
+          }
+        },
+        {
+          "title": "头像样式",
+          "prop": "avatar",
+          "css": {
+            "width": 120,
+            "height": 150,
+            "rotate": 0,
+            "flexShrink": 0,
+            "backgroundColor": "#eee",
+            "opacity": 1,
+            "objectFit": "fill",
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 3,
+              "right": 3,
+              "bottom": 3,
+              "left": 3
+            },
+            "borderRadius": {
+              "topLeft": 0,
+              "topRight": 0,
+              "bottomLeft": 0,
+              "bottomRight": 0
+            },
+            "borderColor": "#eee",
+            "borderStyle": "solid",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "background": ""
+          }
+        },
+        {
+          "title": "姓名样式",
+          "prop": "name",
+          "css": {
+            "color": "#fff",
+            "fontSize": 30,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "fontWeight": 500,
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "background": ""
+          }
+        },
+        {
+          "title": "简介样式",
+          "prop": "abstract",
+          "css": {
+            "fontSize": 14,
+            "color": "#fff",
+            "display": "flex",
+            "flexDirection": "row",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "fontWeight": 500,
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 9,
+              "right": 0,
+              "bottom": 5,
+              "left": 0
+            },
+            "background": ""
+          }
+        },
+        {
+          "title": "用户基础资料样式",
+          "prop": "userBaseInfo",
+          "css": {
+            "flex": 1,
+            "fontSize": 14,
+            "color": "rgb(116, 116, 116)",
+            "display": "flex",
+            "flexDirection": "row",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "fontWeight": 500,
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "background": ""
+          }
+        }
+      ],
+      "dataSource": {
+        "name": {
+          "type": "input",
+          "label": "姓名",
+          "value": "猫步简历",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "age": {
+          "type": "input",
+          "label": "年龄",
+          "value": "22",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "address": {
+          "type": "input",
+          "label": "所在地区",
+          "value": "成都",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "avatar": {
+          "type": "avatar",
+          "label": "证件照",
+          "value": "",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "workService": {
+          "type": "input",
+          "label": "工作年限",
+          "value": 3,
+          "props": {
+            "width": "49%"
+          }
+        },
+        "phoneNumber": {
+          "type": "input",
+          "label": "联系方式",
+          "value": "028-83032406",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "email": {
+          "type": "input",
+          "label": "邮箱地址",
+          "value": "1584775297@qq.com",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "degree": {
+          "type": "select",
+          "label": "学历",
+          "value": "全日制本科",
+          "options": [],
+          "props": {
+            "width": "49%"
+          }
+        },
+        "abstract": {
+          "type": "textarea",
+          "label": "一句话简介",
+          "value": "我是猫步简历，一名热爱编程、追求卓越的Java开发工程师，期待用代码创造价值，与您共同成长！",
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "dbd1a70eda6e4470b8109f73c2ba18b4",
+      "componentName": "JobIntention_2",
+      "commentType": "",
+      "icon": "",
+      "title": "求职意向",
+      "description": "求职意向模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "JobIntention_2.png"
+      },
+      "keywords": "简历标题",
+      "category": "job_intention",
+      "props": {
+        "title": {
+          "chName": "求职意向",
+          "show": true,
+          "iconfont": "icon-yixianggangwei",
+          "config": true
+        },
+        "intendedPositions": {
+          "chName": "意向岗位",
+          "show": true,
+          "iconfont": "icon-yixianggangwei",
+          "config": true
+        },
+        "intendedCity": {
+          "chName": "意向城市",
+          "show": true,
+          "iconfont": "icon-zhiyuandidian3",
+          "config": true
+        },
+        "expectSalary": {
+          "chName": "期望薪资",
+          "show": false,
+          "iconfont": "icon-nianduxinchou",
+          "config": true
+        },
+        "jobStatus": {
+          "chName": "求职状态",
+          "show": true,
+          "iconfont": "icon-ruzhiriqi",
+          "config": true
+        },
+        "jobSearchType": {
+          "chName": "求职类型",
+          "show": true,
+          "iconfont": "icon-gongzuoleixing",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "backgroundPath": "",
+        "fontSize": "14px",
+        "fontWeight": 500,
+        "fontFamily": "微软雅黑",
+        "color": "#757575",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "static",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 10,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "求职意向列表整体样式",
+          "prop": "jobIntentionList",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 500,
+            "letterSpacing": 0,
+            "background": "none",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        }
+      ],
+      "dataSource": {
+        "intendedPositions": {
+          "type": "input",
+          "label": "意向岗位",
+          "value": " Java开发工程师",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "intendedCity": {
+          "type": "input",
+          "label": "意向城市",
+          "value": "成都",
+          "props": {
+            "width": "49%"
+          }
+        },
+        "expectSalary": {
+          "type": "select",
+          "label": "期望薪资",
+          "value": "面议",
+          "options": [],
+          "props": {
+            "width": "49%"
+          }
+        },
+        "jobStatus": {
+          "type": "select",
+          "label": "求职状态",
+          "value": "随时到岗",
+          "options": [],
+          "props": {
+            "width": "49%"
+          }
+        },
+        "jobSearchType": {
+          "type": "select",
+          "label": "求职类型",
+          "value": "全职",
+          "options": [],
+          "props": {
+            "width": "49%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "48e462f968644996895cd6e83c0ce6e2",
+      "componentName": "EduBackground_2",
+      "commentType": "",
+      "icon": "",
+      "title": "教育背景",
+      "description": "教育背景模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "EduBackground_2.png"
+      },
+      "keywords": "教育背景",
+      "category": "edu_background",
+      "props": {
+        "title": {
+          "chName": "教育背景",
+          "show": true,
+          "iconfont": "icon-yixianggangwei",
+          "config": true
+        },
+        "date": {
+          "chName": "教育日期",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "schoolName": {
+          "chName": "学校名称",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "specialized": {
+          "chName": "所学专业",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "degree": {
+          "chName": "学历",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "majorCourse": {
+          "chName": "主修课程",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "backgroundPath": "",
+        "fontSize": "14px",
+        "fontWeight": 500,
+        "fontFamily": "微软雅黑",
+        "color": "#757575",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "static",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 10,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "教育信息整体样式",
+          "prop": "eduBackgroundBox",
+          "css": {
+            "width": "100%",
+            "background": "none",
+            "display": "flex",
+            "flexDirection": "column",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid",
+            "lineHeight": 1.7
+          }
+        },
+        {
+          "title": "教育列表整体样式",
+          "prop": "eduBackgroundList",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 600,
+            "letterSpacing": 1,
+            "background": "none",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "所学专业整体样式",
+          "prop": "specialized",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "display": "flex",
+            "flexDirection": "row",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 500,
+            "letterSpacing": 1,
+            "background": "none",
+            "textAlign": "justify",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "主修课程整体样式",
+          "prop": "majorCourse",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "display": "flex",
+            "flexDirection": "column",
+            "alignItems": "flex-start",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 500,
+            "letterSpacing": 1,
+            "background": "none",
+            "textAlign": "justify",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 10,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        }
+      ],
+      "dataSource": {
+        "list": {
+          "type": "list",
+          "label": "教育背景",
+          "value": [
+            {
+              "date": {
+                "type": "datePicker",
+                "label": "教育日期",
+                "value": [
+                  "2015-5",
+                  "2019-6"
+                ],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "schoolName": {
+                "type": "input",
+                "label": "学校名称",
+                "value": "猫步简历科技大学",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "specialized": {
+                "type": "input",
+                "label": "所学专业",
+                "value": "网络与新媒体专业 ",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "degree": {
+                "type": "select",
+                "label": "学历",
+                "value": "全日制本科",
+                "options": [],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "majorCourse": {
+                "type": "editor",
+                "label": "主修课程",
+                "value": "<p style=\"text-align: left;\">1. <strong>主修课程</strong>：Java程序设计、数据结构与算法、数据库原理、操作系统、计算机网络等</p><p style=\"text-align: left;\">2. <strong>GPA</strong>：3.7/4.0 （专业排名前15%）</p>",
+                "props": {
+                  "width": "100%"
+                }
+              }
+            }
+          ],
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "be12ae9f6cb245a5a604643264bf098e",
+      "componentName": "InternshipExperience_2",
+      "commentType": "",
+      "icon": "",
+      "title": "实习经验",
+      "description": "实习经验模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "InternshipExperience_2.png"
+      },
+      "keywords": "基础信息",
+      "category": "internship_experience",
+      "props": {
+        "title": {
+          "chName": "实习经验",
+          "show": true,
+          "iconfont": "icon-biyeshixi",
+          "config": true
+        },
+        "date": {
+          "chName": "实习日期",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "contentTtile": {
+          "chName": "内容标题",
+          "show": false,
+          "iconfont": "",
+          "config": false
+        },
+        "companyName": {
+          "chName": "公司名称",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "posts": {
+          "chName": "担任职位",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "jobContent": {
+          "chName": "实习内容",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "backgroundPath": "",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "fontFamily": "微软雅黑",
+        "color": "#121c26",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "static",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 10,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "实习经验信息整体样式",
+          "prop": "internshipExperienceBox",
+          "css": {
+            "width": "100%",
+            "background": "none",
+            "display": "flex",
+            "flexDirection": "column",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid",
+            "lineHeight": 1.7
+          }
+        },
+        {
+          "title": "实习经验标题列表整体样式",
+          "prop": "internshipExperienceList",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "letterSpacing": 1,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 600,
+            "background": "none",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 5,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "实习岗位样式",
+          "prop": "internshipPosts",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "display": "flex",
+            "flexDirection": "row",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 500,
+            "letterSpacing": 1,
+            "background": "none",
+            "textAlign": "justify",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "实习经验内容列表整体样式",
+          "prop": "internshipExperienceUl",
+          "css": {
+            "width": "100%",
+            "color": "#757575",
+            "display": "flex",
+            "flexWrap": "wrap",
+            "flex": 1,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "padding": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "background": "",
+            "lineHeight": 1.7
+          }
+        },
+        {
+          "title": "实习经验内容单个列表样式",
+          "prop": "internshipExperienceLi",
+          "css": {
+            "width": "100%",
+            "listStyle": "none",
+            "listStylePosition": "outside",
+            "letterSpacing": 1,
+            "lineHeight": 1.7,
+            "fontSize": 14,
+            "textAlign": "justify",
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "padding": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "background": ""
+          }
+        }
+      ],
+      "dataSource": {
+        "list": {
+          "type": "list",
+          "label": "实习经验",
+          "value": [
+            {
+              "date": {
+                "type": "datePicker",
+                "label": "实习日期",
+                "value": [
+                  "2018-04",
+                  "2018-08"
+                ],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "contentTtile": {
+                "type": "input",
+                "label": "内容标题",
+                "value": "实习内容",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "companyName": {
+                "type": "input",
+                "label": "公司名称",
+                "value": "猫步简历科技有限公司",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "posts": {
+                "type": "input",
+                "label": "担任职位",
+                "value": "Java开发实习生",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "jobContent": {
+                "type": "listLi",
+                "label": "实习内容",
+                "value": [
+                  {
+                    "content": {
+                      "type": "editor",
+                      "label": "内容",
+                      "value": "<p style=\"text-align: left;\">1. 参与公司内部管理系统的开发，负责用户管理模块的设计与实现，使用Spring Boot、MyBatis等技术栈，完成接口开发、单元测试和代码优化。</p><p style=\"text-align: left;\">2. 协助团队进行代码审查和性能优化，提升系统运行效率。</p><p style=\"text-align: left;\">3. 学习并应用了敏捷开发流程，参与了需求分析、代码编写、测试和部署等环节。</p><p style=\"text-align: left;\"><br></p>",
+                      "props": {
+                        "width": "95%"
+                      }
+                    }
+                  }
+                ],
+                "props": {
+                  "width": "100%"
+                }
+              }
+            },
+            {
+              "date": {
+                "type": "datePicker",
+                "label": "实习日期",
+                "value": [
+                  "2021-9",
+                  "2022-10"
+                ],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "contentTtile": {
+                "type": "input",
+                "label": "内容标题",
+                "value": "实习内容",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "companyName": {
+                "type": "input",
+                "label": "公司名称",
+                "value": "猫步简历软件有限公司",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "posts": {
+                "type": "input",
+                "label": "担任职位",
+                "value": "软件开发实习生",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "jobContent": {
+                "type": "listLi",
+                "label": "实习内容",
+                "value": [
+                  {
+                    "content": {
+                      "type": "editor",
+                      "label": "内容",
+                      "value": "<p style=\"text-align: left;\">1. 参与公司电商平台的后台开发，负责商品管理模块的功能实现，使用Spring MVC、Hibernate等技术，完成数据库设计、接口开发和页面交互。</p><p style=\"text-align: left;\">2. 学习并应用了Git版本控制工具，参与了团队协作开发。</p><p style=\"text-align: left;\">3. 协助测试团队进行功能测试和bug修复，确保项目按时交付。</p>",
+                      "props": {
+                        "width": "95%"
+                      }
+                    }
+                  }
+                ],
+                "props": {
+                  "width": "100%"
+                }
+              }
+            }
+          ],
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "a592cf2c4f45457b919262c9fd8b2f0a",
+      "componentName": "CampusExperience_2",
+      "commentType": "",
+      "icon": "",
+      "title": "校园经历",
+      "description": "校园经历模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "CampusExperience_2.png"
+      },
+      "keywords": "基础信息",
+      "category": "campus_experience",
+      "props": {
+        "title": {
+          "chName": "校园经历",
+          "show": true,
+          "iconfont": "icon-jiatimianban_timu",
+          "config": true
+        },
+        "date": {
+          "chName": "经历时期",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "campusBriefly": {
+          "chName": "经历简要",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "campusDuty": {
+          "chName": "主要职责",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "campusContent": {
+          "chName": "经历内容",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "backgroundPath": "",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "fontFamily": "微软雅黑",
+        "color": "#121c26",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "static",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 10,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "校园经历信息整体样式",
+          "prop": "campusExperienceBox",
+          "css": {
+            "width": "100%",
+            "background": "none",
+            "display": "flex",
+            "flexDirection": "column",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid",
+            "lineHeight": 1.7
+          }
+        },
+        {
+          "title": "校园经历标题列表整体样式",
+          "prop": "campusExperienceList",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "letterSpacing": 1,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 600,
+            "background": "none",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "主要职责样式",
+          "prop": "campusDuty",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "display": "flex",
+            "flexDirection": "row",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 500,
+            "letterSpacing": 1,
+            "background": "none",
+            "textAlign": "justify",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "校园经历内容样式",
+          "prop": "campusContent",
+          "css": {
+            "width": "100%",
+            "lineHeight": 1.7,
+            "letterSpacing": 1,
+            "display": "flex",
+            "flexDirection": "column",
+            "alignItems": "flex-start",
+            "justifyContent": "space-between",
+            "fontSize": 14,
+            "color": "#757575",
+            "fontWeight": 500,
+            "background": "none",
+            "textAlign": "justify",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 10,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 10,
+              "left": 18
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        }
+      ],
+      "dataSource": {
+        "list": {
+          "type": "list",
+          "label": "校园经历",
+          "value": [
+            {
+              "date": {
+                "type": "datePicker",
+                "label": "经历时期",
+                "value": [
+                  "2015-5",
+                  "2019-6"
+                ],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "campusBriefly": {
+                "type": "input",
+                "label": "经历简要",
+                "value": "软件工程实验室",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "campusDuty": {
+                "type": "input",
+                "label": "主要职责",
+                "value": "核心成员",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "campusContent": {
+                "type": "editor",
+                "label": "经历内容",
+                "value": "<ol><li style=\"text-align: left;\">参与实验室“基于Java的在线考试系统”项目开发，负责题库管理模块的设计与实现，使用Spring Boot、Vue.js等技术栈，完成前后端分离开发。</li><li style=\"text-align: left;\">参与实验室“校园二手交易平台”项目开发，负责用户认证模块的功能实现，使用Spring Security框架，完成用户注册、登录、权限控制等功能。</li><li style=\"text-align: left;\">积极参与实验室技术分享会，学习并分享了Java并发编程、Spring Cloud微服务等相关技术。</li></ol><p style=\"text-align: left;\"><br></p>",
+                "props": {
+                  "width": "100%"
+                }
+              }
+            },
+            {
+              "date": {
+                "type": "datePicker",
+                "label": "经历时期",
+                "value": [
+                  "2015-5",
+                  "2019-6"
+                ],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "campusBriefly": {
+                "type": "input",
+                "label": "经历简要",
+                "value": "计算机协会",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "campusDuty": {
+                "type": "input",
+                "label": "主要职责",
+                "value": "技术部部长",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "campusContent": {
+                "type": "editor",
+                "label": "经历内容",
+                "value": "<ol><li style=\"text-align: left;\">组织策划了“Java编程大赛”、“算法竞赛”等活动，参与人数累计达300+。</li><li style=\"text-align: left;\">带领团队完成协会官网的开发，使用Java、HTML、CSS等技术，完成网站搭建和功能实现。</li><li style=\"text-align: left;\">积极组织协会成员进行技术学习和交流，提升协会整体技术水平。</li></ol>",
+                "props": {
+                  "width": "100%"
+                }
+              }
+            }
+          ],
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "1ef3d1dbc6c14b2c8e4e6dd92bde58c2",
+      "componentName": "SkillSpecialties_6",
+      "commentType": "",
+      "icon": "",
+      "title": "荣誉奖项",
+      "description": "技能特长模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "SkillSpecialties_6.png"
+      },
+      "keywords": "简历标题",
+      "category": "skill_specialties",
+      "props": {
+        "title": {
+          "chName": "荣誉奖项",
+          "show": true,
+          "iconfont": "icon-zhuanyezhishijineng",
+          "config": true
+        },
+        "skillName": {
+          "chName": "技能名称",
+          "show": false,
+          "iconfont": "",
+          "config": false
+        },
+        "proficiency": {
+          "chName": "熟练度",
+          "show": false,
+          "iconfont": "",
+          "config": false
+        },
+        "introduce": {
+          "chName": "技能介绍",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "fontFamily": "微软雅黑",
+        "color": "#fff",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "relative",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 10,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "fontSize": 18,
+            "color": "rgb(0, 0, 0)",
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "background": "",
+            "borderColor": "rgb(121, 134, 204)"
+          }
+        },
+        {
+          "title": "技能特长整体样式",
+          "prop": "skillSpecialtiesBox",
+          "css": {
+            "width": "100%",
+            "color": "#757575",
+            "display": "flex",
+            "flexDirection": "row",
+            "flexWrap": "wrap",
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "padding": {
+              "bottom": 0,
+              "left": 15,
+              "right": 0,
+              "top": 0
+            },
+            "background": "",
+            "lineHeight": 1.7
+          }
+        },
+        {
+          "title": "单个列表样式",
+          "prop": "skillSpecialtiesLi",
+          "css": {
+            "width": "100%",
+            "listStyle": "none",
+            "listStylePosition": "outside",
+            "letterSpacing": 1,
+            "lineHeight": 1.7,
+            "fontSize": 14,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "padding": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "background": ""
+          }
+        }
+      ],
+      "dataSource": {
+        "list": {
+          "type": "list",
+          "label": "技能特长",
+          "value": [
+            {
+              "skillName": {
+                "type": "input",
+                "label": "技能名称",
+                "value": "Vue3",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "proficiency": {
+                "type": "select",
+                "label": "熟练度",
+                "value": "熟悉",
+                "options": [],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "introduce": {
+                "type": "editor",
+                "label": "技能介绍",
+                "value": "<ul><li style=\"text-align: start;\">2023年 猫步简历科技大学 优秀学生奖学金 （二等奖）</li><li style=\"text-align: start;\">2022年 猫步简历科技有限公司 “优秀实习生”称号</li><li style=\"text-align: start;\">2021年 猫步简历科技大学 程序设计大赛 （三等奖）</li><li style=\"text-align: start;\">2020年 猫步简历科技大学 新生编程大赛 （一等奖）</li></ul>",
+                "props": {
+                  "width": "100%"
+                }
+              }
+            }
+          ],
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "e490b9b4b00746a7bea0245f781c3f08",
+      "componentName": "SkillSpecialties_6",
+      "commentType": "",
+      "icon": "",
+      "title": "技能特长",
+      "description": "技能特长模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "SkillSpecialties_6.png"
+      },
+      "keywords": "简历标题",
+      "category": "skill_specialties",
+      "props": {
+        "title": {
+          "chName": "技能特长",
+          "show": true,
+          "iconfont": "icon-zhuanyezhishijineng",
+          "config": true
+        },
+        "skillName": {
+          "chName": "技能名称",
+          "show": false,
+          "iconfont": "",
+          "config": false
+        },
+        "proficiency": {
+          "chName": "熟练度",
+          "show": false,
+          "iconfont": "",
+          "config": false
+        },
+        "introduce": {
+          "chName": "技能介绍",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "fontFamily": "微软雅黑",
+        "color": "#fff",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "relative",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 10,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "fontSize": 18,
+            "color": "rgb(0, 0, 0)",
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "background": "",
+            "borderColor": "rgb(121, 134, 204)"
+          }
+        },
+        {
+          "title": "技能特长整体样式",
+          "prop": "skillSpecialtiesBox",
+          "css": {
+            "width": "100%",
+            "color": "#757575",
+            "display": "flex",
+            "flexDirection": "row",
+            "flexWrap": "wrap",
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "padding": {
+              "bottom": 0,
+              "left": 15,
+              "right": 0,
+              "top": 0
+            },
+            "background": "",
+            "lineHeight": 1.7
+          }
+        },
+        {
+          "title": "单个列表样式",
+          "prop": "skillSpecialtiesLi",
+          "css": {
+            "width": "100%",
+            "listStyle": "none",
+            "listStylePosition": "outside",
+            "letterSpacing": 1,
+            "lineHeight": 1.7,
+            "fontSize": 14,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "padding": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "background": ""
+          }
+        }
+      ],
+      "dataSource": {
+        "list": {
+          "type": "list",
+          "label": "技能特长",
+          "value": [
+            {
+              "skillName": {
+                "type": "input",
+                "label": "技能名称",
+                "value": "Vue3",
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "proficiency": {
+                "type": "select",
+                "label": "熟练度",
+                "value": "熟悉",
+                "options": [],
+                "props": {
+                  "width": "49%"
+                }
+              },
+              "introduce": {
+                "type": "editor",
+                "label": "技能介绍",
+                "value": "<ul><li style=\"text-align: start;\"><strong>编程语言</strong>： 熟练掌握Java，了解Python、C++等编程语言。</li><li style=\"text-align: start;\"><strong>开发框架</strong>： 熟悉Spring Boot、Spring MVC、MyBatis等主流Java开发框架。</li><li style=\"text-align: start;\"><strong>数据库</strong>： 熟悉MySQL数据库，了解Redis等NoSQL数据库。</li><li style=\"text-align: start;\"><strong>前端技术</strong>： 了解HTML、CSS、JavaScript等前端技术，能够进行简单的页面开发。</li><li style=\"text-align: start;\"><strong>开发工具</strong>： 熟练使用IntelliJ IDEA、Eclipse等开发工具，熟悉Git版本控制工具。</li><li style=\"text-align: start;\"><strong>其他技能</strong>： 熟悉Linux操作系统，了解Docker容器技术。</li></ul>",
+                "props": {
+                  "width": "100%"
+                }
+              }
+            }
+          ],
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "f8cf09817a514ec0b6e4f58e945fdeee",
+      "componentName": "Hobbies_1",
+      "commentType": "",
+      "icon": "",
+      "title": "兴趣爱好",
+      "description": "兴趣爱好模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "Hobbies_1.png"
+      },
+      "keywords": "兴趣爱好",
+      "category": "hobbies",
+      "props": {
+        "title": {
+          "chName": "兴趣爱好",
+          "show": true,
+          "iconfont": "icon-xingquaihao",
+          "config": true
+        },
+        "content": {
+          "chName": "兴趣爱好",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "backgroundPath": "",
+        "fontSize": "14px",
+        "fontWeight": 500,
+        "fontFamily": "微软雅黑",
+        "color": "#757575",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "static",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 10,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "爱好简介样式",
+          "prop": "abstract",
+          "css": {
+            "width": "100%",
+            "fontSize": 14,
+            "color": "#7c7b7b",
+            "textAlign": "justify",
+            "lineHeight": 1.7,
+            "fontWeight": 500,
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 14
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 20,
+              "left": 0
+            },
+            "background": ""
+          }
+        }
+      ],
+      "dataSource": {
+        "content": {
+          "type": "editor",
+          "label": "兴趣爱好",
+          "value": "<ul><li style=\"text-align: start;\">热爱编程，喜欢钻研新技术，积极参与开源项目。</li><li style=\"text-align: start;\">喜欢阅读技术书籍和博客，关注行业最新动态。</li><li style=\"text-align: start;\">热爱运动，喜欢打篮球和跑步，保持积极向上的生活态度。</li></ul>",
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    },
+    {
+      "id": "27e913672a5c45c293089579320563d4",
+      "componentName": "SelfEvaluation_1",
+      "commentType": "",
+      "icon": "",
+      "title": "自我评价",
+      "description": "自我评价模块",
+      "screenShot": {
+        "width": "100%",
+        "url": "",
+        "name": "SelfEvaluation_1.png"
+      },
+      "keywords": "自我评价",
+      "category": "self_evaluation",
+      "props": {
+        "title": {
+          "chName": "自我评价",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        },
+        "content": {
+          "chName": "自我评价",
+          "show": true,
+          "iconfont": "",
+          "config": true
+        }
+      },
+      "css": {
+        "width": "100%",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "flex-start",
+        "alignItems": "center",
+        "background": "#fff",
+        "backgroundPath": "",
+        "fontSize": "14px",
+        "fontWeight": 500,
+        "fontFamily": "微软雅黑",
+        "color": "#757575",
+        "letterSpacing": 0,
+        "opacity": 1,
+        "position": "static",
+        "padding": {
+          "top": 3,
+          "right": 30,
+          "bottom": 20,
+          "left": 30
+        },
+        "margin": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderWidth": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "borderRadius": {
+          "topLeft": 0,
+          "topRight": 0,
+          "bottomLeft": 0,
+          "bottomRight": 0
+        },
+        "borderColor": "#eee",
+        "borderStyle": "solid",
+        "themeColor": "rgba(48, 48, 48, 0.64)"
+      },
+      "customCss": [
+        {
+          "title": "模块标题整体样式",
+          "prop": "moduleTitle",
+          "css": {
+            "height": 40,
+            "width": "100%",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "position": "relative",
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 15,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 10
+            },
+            "borderStyle": "solid",
+            "background": "rgba(48, 48, 48, 0.64)",
+            "borderColor": "#254665",
+            "color": "#254665",
+            "backgroundColor": "rgba(48, 48, 48, 0.64)"
+          }
+        },
+        {
+          "title": "模块标题字体样式",
+          "prop": "moduleTitleFont",
+          "css": {
+            "height": "100%",
+            "width": 150,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "flex-start",
+            "fontSize": 18,
+            "fontWeight": 500,
+            "letterSpacing": 2,
+            "color": "#fff",
+            "background": "none",
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderWidth": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "borderColor": "rgb(0, 0, 0)",
+            "borderStyle": "solid"
+          }
+        },
+        {
+          "title": "自我评价样式",
+          "prop": "abstract",
+          "css": {
+            "width": "100%",
+            "fontSize": 14,
+            "color": "#7c7b7b",
+            "textAlign": "justify",
+            "lineHeight": 1.5,
+            "fontWeight": 500,
+            "padding": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            },
+            "margin": {
+              "top": 0,
+              "right": 0,
+              "bottom": 20,
+              "left": 0
+            },
+            "background": ""
+          }
+        }
+      ],
+      "dataSource": {
+        "content": {
+          "type": "textarea",
+          "label": "自我评价",
+          "value": "我个人擅长编写代码、与人沟通，为人和善、助人为乐等等",
+          "props": {
+            "width": "100%"
+          }
+        }
+      },
+      "customProps": {
+        "ModuleTitleCpt": "ModuleTitle_18",
+        "showModule": true,
+        "unfoldModule": true
+      }
+    }
+  ],
+  "props": {
+    "pageName": "BasePage",
+    "screenShot": "page_1.png",
+    "title": "内容运营校招岗位简历模板"
+  },
+  "css": {
+    "width": 820,
+    "height": "100%",
+    "display": "flex",
+    "flexDirection": "column",
+    "justifyContent": "flex-start",
+    "background": "#ffffff",
+    "opacity": 1,
+    "fontFamily": "微软雅黑",
+    "themeColor": "rgba(48, 48, 48, 0.64)",
+    "backgroundPath": "",
+    "padding": {
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "left": 0
+    },
+    "modulePadding": {
+      "top": 0,
+      "right": 30,
+      "bottom": 10,
+      "left": 30
+    },
+    "moduleMargin": {
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "left": 0
+    }
+  },
+  "customCss": [],
+  "config": {
+    "title": "校招Java开发工程师岗位"
+  }
+}

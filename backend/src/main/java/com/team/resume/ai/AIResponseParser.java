@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
+import com.team.resume.ai.dto.ResumeGenerationResult;
+import com.team.resume.ai.dto.ResumeGenerationResult.Highlight;
 import com.team.resume.common.BusinessException;
 
 /**
@@ -66,6 +68,38 @@ public class AIResponseParser {
                 readStringList(root, "jobGapSuggestions"),
                 readStringList(root, "missingFields"),
                 readStringList(root, "warnings"));
+    }
+
+    /**
+     * 简历文案建议：selfEvaluation 允许为空；亮点条目必须带合法的非负 index，
+     * 否则整条忽略（不因为模型多输出一条脏数据就让整个生成失败）。
+     */
+    public ResumeGenerationResult parseResumeGeneration(String content) {
+        JsonNode root = readJson(content);
+        String selfEvaluation = root.path("selfEvaluation").asText("").trim();
+        return new ResumeGenerationResult(
+                selfEvaluation,
+                readHighlights(root, "experienceHighlights"),
+                readHighlights(root, "projectHighlights"));
+    }
+
+    private static List<Highlight> readHighlights(JsonNode parent, String field) {
+        List<Highlight> result = new ArrayList<>();
+        JsonNode node = parent.get(field);
+        if (node == null || !node.isArray()) {
+            return result;
+        }
+        node.forEach(item -> {
+            int index = item.path("index").asInt(-1);
+            if (index < 0) {
+                return;
+            }
+            List<String> highlights = readStringList(item, "highlights");
+            if (!highlights.isEmpty()) {
+                result.add(new Highlight(index, highlights));
+            }
+        });
+        return result;
     }
 
     private JsonNode readJson(String content) {

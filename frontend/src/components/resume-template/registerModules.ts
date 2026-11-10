@@ -1,0 +1,260 @@
+// 由 20 套模板的 componentsTree 自动生成，勿手工增删
+import type { Component } from 'vue'
+
+import Awards_1 from './vendor/modules/Awards/Awards_1.vue'
+import Awards_10 from './vendor/modules/Awards/Awards_10.vue'
+import Awards_11 from './vendor/modules/Awards/Awards_11.vue'
+import Awards_2 from './vendor/modules/Awards/Awards_2.vue'
+import Awards_3 from './vendor/modules/Awards/Awards_3.vue'
+import Awards_4 from './vendor/modules/Awards/Awards_4.vue'
+import Awards_5 from './vendor/modules/Awards/Awards_5.vue'
+import Awards_6 from './vendor/modules/Awards/Awards_6.vue'
+import Awards_7 from './vendor/modules/Awards/Awards_7.vue'
+import Awards_8 from './vendor/modules/Awards/Awards_8.vue'
+import BaseInfo_1 from './vendor/modules/BaseInfo/BaseInfo_1.vue'
+import BaseInfo_10 from './vendor/modules/BaseInfo/BaseInfo_10.vue'
+import BaseInfo_11 from './vendor/modules/BaseInfo/BaseInfo_11.vue'
+import BaseInfo_12 from './vendor/modules/BaseInfo/BaseInfo_12.vue'
+import BaseInfo_2 from './vendor/modules/BaseInfo/BaseInfo_2.vue'
+import BaseInfo_3 from './vendor/modules/BaseInfo/BaseInfo_3.vue'
+import BaseInfo_4 from './vendor/modules/BaseInfo/BaseInfo_4.vue'
+import BaseInfo_5 from './vendor/modules/BaseInfo/BaseInfo_5.vue'
+import BaseInfo_6 from './vendor/modules/BaseInfo/BaseInfo_6.vue'
+import BaseInfo_7 from './vendor/modules/BaseInfo/BaseInfo_7.vue'
+import BaseInfo_9 from './vendor/modules/BaseInfo/BaseInfo_9.vue'
+import CampusExperience_1 from './vendor/modules/CampusExperience/CampusExperience_1.vue'
+import CampusExperience_10 from './vendor/modules/CampusExperience/CampusExperience_10.vue'
+import CampusExperience_11 from './vendor/modules/CampusExperience/CampusExperience_11.vue'
+import CampusExperience_2 from './vendor/modules/CampusExperience/CampusExperience_2.vue'
+import CampusExperience_3 from './vendor/modules/CampusExperience/CampusExperience_3.vue'
+import CampusExperience_4 from './vendor/modules/CampusExperience/CampusExperience_4.vue'
+import CampusExperience_5 from './vendor/modules/CampusExperience/CampusExperience_5.vue'
+import CampusExperience_6 from './vendor/modules/CampusExperience/CampusExperience_6.vue'
+import CampusExperience_7 from './vendor/modules/CampusExperience/CampusExperience_7.vue'
+import CampusExperience_8 from './vendor/modules/CampusExperience/CampusExperience_8.vue'
+import Custom_1 from './vendor/modules/Custom/Custom_1.vue'
+import Custom_2 from './vendor/modules/Custom/Custom_2.vue'
+import Custom_3 from './vendor/modules/Custom/Custom_3.vue'
+import EduBackground_1 from './vendor/modules/EduBackground/EduBackground_1.vue'
+import EduBackground_10 from './vendor/modules/EduBackground/EduBackground_10.vue'
+import EduBackground_11 from './vendor/modules/EduBackground/EduBackground_11.vue'
+import EduBackground_2 from './vendor/modules/EduBackground/EduBackground_2.vue'
+import EduBackground_3 from './vendor/modules/EduBackground/EduBackground_3.vue'
+import EduBackground_4 from './vendor/modules/EduBackground/EduBackground_4.vue'
+import EduBackground_5 from './vendor/modules/EduBackground/EduBackground_5.vue'
+import EduBackground_6 from './vendor/modules/EduBackground/EduBackground_6.vue'
+import EduBackground_7 from './vendor/modules/EduBackground/EduBackground_7.vue'
+import EduBackground_8 from './vendor/modules/EduBackground/EduBackground_8.vue'
+import Hobbies_1 from './vendor/modules/Hobbies/Hobbies_1.vue'
+import Hobbies_10 from './vendor/modules/Hobbies/Hobbies_10.vue'
+import Hobbies_2 from './vendor/modules/Hobbies/Hobbies_2.vue'
+import Hobbies_3 from './vendor/modules/Hobbies/Hobbies_3.vue'
+import Hobbies_4 from './vendor/modules/Hobbies/Hobbies_4.vue'
+import Hobbies_5 from './vendor/modules/Hobbies/Hobbies_5.vue'
+import Hobbies_6 from './vendor/modules/Hobbies/Hobbies_6.vue'
+import Hobbies_7 from './vendor/modules/Hobbies/Hobbies_7.vue'
+import Hobbies_8 from './vendor/modules/Hobbies/Hobbies_8.vue'
+import Hobbies_9 from './vendor/modules/Hobbies/Hobbies_9.vue'
+import InternshipExperience_1 from './vendor/modules/InternshipExperience/InternshipExperience_1.vue'
+import InternshipExperience_10 from './vendor/modules/InternshipExperience/InternshipExperience_10.vue'
+import InternshipExperience_11 from './vendor/modules/InternshipExperience/InternshipExperience_11.vue'
+import InternshipExperience_2 from './vendor/modules/InternshipExperience/InternshipExperience_2.vue'
+import InternshipExperience_3 from './vendor/modules/InternshipExperience/InternshipExperience_3.vue'
+import InternshipExperience_4 from './vendor/modules/InternshipExperience/InternshipExperience_4.vue'
+import InternshipExperience_5 from './vendor/modules/InternshipExperience/InternshipExperience_5.vue'
+import InternshipExperience_6 from './vendor/modules/InternshipExperience/InternshipExperience_6.vue'
+import InternshipExperience_7 from './vendor/modules/InternshipExperience/InternshipExperience_7.vue'
+import InternshipExperience_8 from './vendor/modules/InternshipExperience/InternshipExperience_8.vue'
+import JobIntention_1 from './vendor/modules/JobIntention/JobIntention_1.vue'
+import JobIntention_10 from './vendor/modules/JobIntention/JobIntention_10.vue'
+import JobIntention_2 from './vendor/modules/JobIntention/JobIntention_2.vue'
+import JobIntention_3 from './vendor/modules/JobIntention/JobIntention_3.vue'
+import JobIntention_4 from './vendor/modules/JobIntention/JobIntention_4.vue'
+import JobIntention_5 from './vendor/modules/JobIntention/JobIntention_5.vue'
+import JobIntention_6 from './vendor/modules/JobIntention/JobIntention_6.vue'
+import JobIntention_7 from './vendor/modules/JobIntention/JobIntention_7.vue'
+import JobIntention_8 from './vendor/modules/JobIntention/JobIntention_8.vue'
+import JobIntention_9 from './vendor/modules/JobIntention/JobIntention_9.vue'
+import ProjectExperience_1 from './vendor/modules/ProjectExperience/ProjectExperience_1.vue'
+import ProjectExperience_10 from './vendor/modules/ProjectExperience/ProjectExperience_10.vue'
+import ProjectExperience_11 from './vendor/modules/ProjectExperience/ProjectExperience_11.vue'
+import ProjectExperience_2 from './vendor/modules/ProjectExperience/ProjectExperience_2.vue'
+import ProjectExperience_3 from './vendor/modules/ProjectExperience/ProjectExperience_3.vue'
+import ProjectExperience_4 from './vendor/modules/ProjectExperience/ProjectExperience_4.vue'
+import ProjectExperience_5 from './vendor/modules/ProjectExperience/ProjectExperience_5.vue'
+import ProjectExperience_6 from './vendor/modules/ProjectExperience/ProjectExperience_6.vue'
+import ProjectExperience_7 from './vendor/modules/ProjectExperience/ProjectExperience_7.vue'
+import ProjectExperience_8 from './vendor/modules/ProjectExperience/ProjectExperience_8.vue'
+import ResumeTitle_1 from './vendor/modules/ResumeTitle/ResumeTitle_1.vue'
+import SelfEvaluation_1 from './vendor/modules/SelfEvaluation/SelfEvaluation_1.vue'
+import SelfEvaluation_10 from './vendor/modules/SelfEvaluation/SelfEvaluation_10.vue'
+import SelfEvaluation_2 from './vendor/modules/SelfEvaluation/SelfEvaluation_2.vue'
+import SelfEvaluation_3 from './vendor/modules/SelfEvaluation/SelfEvaluation_3.vue'
+import SelfEvaluation_4 from './vendor/modules/SelfEvaluation/SelfEvaluation_4.vue'
+import SelfEvaluation_5 from './vendor/modules/SelfEvaluation/SelfEvaluation_5.vue'
+import SelfEvaluation_6 from './vendor/modules/SelfEvaluation/SelfEvaluation_6.vue'
+import SelfEvaluation_7 from './vendor/modules/SelfEvaluation/SelfEvaluation_7.vue'
+import SelfEvaluation_8 from './vendor/modules/SelfEvaluation/SelfEvaluation_8.vue'
+import SelfEvaluation_9 from './vendor/modules/SelfEvaluation/SelfEvaluation_9.vue'
+import SkillSpecialties_1 from './vendor/modules/SkillSpecialties/SkillSpecialties_1.vue'
+import SkillSpecialties_10 from './vendor/modules/SkillSpecialties/SkillSpecialties_10.vue'
+import SkillSpecialties_11 from './vendor/modules/SkillSpecialties/SkillSpecialties_11.vue'
+import SkillSpecialties_13 from './vendor/modules/SkillSpecialties/SkillSpecialties_13.vue'
+import SkillSpecialties_15 from './vendor/modules/SkillSpecialties/SkillSpecialties_15.vue'
+import SkillSpecialties_16 from './vendor/modules/SkillSpecialties/SkillSpecialties_16.vue'
+import SkillSpecialties_3 from './vendor/modules/SkillSpecialties/SkillSpecialties_3.vue'
+import SkillSpecialties_4 from './vendor/modules/SkillSpecialties/SkillSpecialties_4.vue'
+import SkillSpecialties_5 from './vendor/modules/SkillSpecialties/SkillSpecialties_5.vue'
+import SkillSpecialties_6 from './vendor/modules/SkillSpecialties/SkillSpecialties_6.vue'
+import SkillSpecialties_7 from './vendor/modules/SkillSpecialties/SkillSpecialties_7.vue'
+import SkillSpecialties_8 from './vendor/modules/SkillSpecialties/SkillSpecialties_8.vue'
+import WorkExperience_1 from './vendor/modules/WorkExperience/WorkExperience_1.vue'
+import WorkExperience_10 from './vendor/modules/WorkExperience/WorkExperience_10.vue'
+import WorkExperience_11 from './vendor/modules/WorkExperience/WorkExperience_11.vue'
+import WorkExperience_2 from './vendor/modules/WorkExperience/WorkExperience_2.vue'
+import WorkExperience_3 from './vendor/modules/WorkExperience/WorkExperience_3.vue'
+import WorkExperience_4 from './vendor/modules/WorkExperience/WorkExperience_4.vue'
+import WorkExperience_5 from './vendor/modules/WorkExperience/WorkExperience_5.vue'
+import WorkExperience_6 from './vendor/modules/WorkExperience/WorkExperience_6.vue'
+import WorkExperience_7 from './vendor/modules/WorkExperience/WorkExperience_7.vue'
+import WorkExperience_8 from './vendor/modules/WorkExperience/WorkExperience_8.vue'
+import WorksDisplay_1 from './vendor/modules/WorksDisplay/WorksDisplay_1.vue'
+import WorksDisplay_10 from './vendor/modules/WorksDisplay/WorksDisplay_10.vue'
+import WorksDisplay_2 from './vendor/modules/WorksDisplay/WorksDisplay_2.vue'
+import WorksDisplay_3 from './vendor/modules/WorksDisplay/WorksDisplay_3.vue'
+import WorksDisplay_4 from './vendor/modules/WorksDisplay/WorksDisplay_4.vue'
+import WorksDisplay_5 from './vendor/modules/WorksDisplay/WorksDisplay_5.vue'
+import WorksDisplay_6 from './vendor/modules/WorksDisplay/WorksDisplay_6.vue'
+import WorksDisplay_7 from './vendor/modules/WorksDisplay/WorksDisplay_7.vue'
+import WorksDisplay_8 from './vendor/modules/WorksDisplay/WorksDisplay_8.vue'
+import WorksDisplay_9 from './vendor/modules/WorksDisplay/WorksDisplay_9.vue'
+
+export const moduleComponents: Record<string, Component> = {
+  Awards_1,
+  Awards_10,
+  Awards_11,
+  Awards_2,
+  Awards_3,
+  Awards_4,
+  Awards_5,
+  Awards_6,
+  Awards_7,
+  Awards_8,
+  BaseInfo_1,
+  BaseInfo_10,
+  BaseInfo_11,
+  BaseInfo_12,
+  BaseInfo_2,
+  BaseInfo_3,
+  BaseInfo_4,
+  BaseInfo_5,
+  BaseInfo_6,
+  BaseInfo_7,
+  BaseInfo_9,
+  CampusExperience_1,
+  CampusExperience_10,
+  CampusExperience_11,
+  CampusExperience_2,
+  CampusExperience_3,
+  CampusExperience_4,
+  CampusExperience_5,
+  CampusExperience_6,
+  CampusExperience_7,
+  CampusExperience_8,
+  Custom_1,
+  Custom_2,
+  Custom_3,
+  EduBackground_1,
+  EduBackground_10,
+  EduBackground_11,
+  EduBackground_2,
+  EduBackground_3,
+  EduBackground_4,
+  EduBackground_5,
+  EduBackground_6,
+  EduBackground_7,
+  EduBackground_8,
+  Hobbies_1,
+  Hobbies_10,
+  Hobbies_2,
+  Hobbies_3,
+  Hobbies_4,
+  Hobbies_5,
+  Hobbies_6,
+  Hobbies_7,
+  Hobbies_8,
+  Hobbies_9,
+  InternshipExperience_1,
+  InternshipExperience_10,
+  InternshipExperience_11,
+  InternshipExperience_2,
+  InternshipExperience_3,
+  InternshipExperience_4,
+  InternshipExperience_5,
+  InternshipExperience_6,
+  InternshipExperience_7,
+  InternshipExperience_8,
+  JobIntention_1,
+  JobIntention_10,
+  JobIntention_2,
+  JobIntention_3,
+  JobIntention_4,
+  JobIntention_5,
+  JobIntention_6,
+  JobIntention_7,
+  JobIntention_8,
+  JobIntention_9,
+  ProjectExperience_1,
+  ProjectExperience_10,
+  ProjectExperience_11,
+  ProjectExperience_2,
+  ProjectExperience_3,
+  ProjectExperience_4,
+  ProjectExperience_5,
+  ProjectExperience_6,
+  ProjectExperience_7,
+  ProjectExperience_8,
+  ResumeTitle_1,
+  SelfEvaluation_1,
+  SelfEvaluation_10,
+  SelfEvaluation_2,
+  SelfEvaluation_3,
+  SelfEvaluation_4,
+  SelfEvaluation_5,
+  SelfEvaluation_6,
+  SelfEvaluation_7,
+  SelfEvaluation_8,
+  SelfEvaluation_9,
+  SkillSpecialties_1,
+  SkillSpecialties_10,
+  SkillSpecialties_11,
+  SkillSpecialties_13,
+  SkillSpecialties_15,
+  SkillSpecialties_16,
+  SkillSpecialties_3,
+  SkillSpecialties_4,
+  SkillSpecialties_5,
+  SkillSpecialties_6,
+  SkillSpecialties_7,
+  SkillSpecialties_8,
+  WorkExperience_1,
+  WorkExperience_10,
+  WorkExperience_11,
+  WorkExperience_2,
+  WorkExperience_3,
+  WorkExperience_4,
+  WorkExperience_5,
+  WorkExperience_6,
+  WorkExperience_7,
+  WorkExperience_8,
+  WorksDisplay_1,
+  WorksDisplay_10,
+  WorksDisplay_2,
+  WorksDisplay_3,
+  WorksDisplay_4,
+  WorksDisplay_5,
+  WorksDisplay_6,
+  WorksDisplay_7,
+  WorksDisplay_8,
+  WorksDisplay_9,
+}

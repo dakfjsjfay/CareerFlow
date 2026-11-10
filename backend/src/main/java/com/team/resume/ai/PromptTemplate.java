@@ -16,14 +16,20 @@ public class PromptTemplate {
 
     private final String chatExtractPrompt;
     private final String documentAnalyzePrompt;
+    private final String resumeGeneratePrompt;
 
     public PromptTemplate() {
         this.chatExtractPrompt = read("prompts/chat-extract-prompt.txt");
         this.documentAnalyzePrompt = read("prompts/document-analyze-prompt.txt");
+        this.resumeGeneratePrompt = read("prompts/resume-generate-prompt.txt");
     }
 
     public String chatExtractPrompt() {
         return chatExtractPrompt;
+    }
+
+    public String resumeGeneratePrompt() {
+        return resumeGeneratePrompt;
     }
 
     public String documentAnalyzePrompt(String analysisType, String jobDescription) {
