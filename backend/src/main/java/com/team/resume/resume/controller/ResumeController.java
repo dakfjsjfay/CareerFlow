@@ -1,7 +1,12 @@
 package com.team.resume.resume.controller;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,9 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.team.resume.common.Result;
 import com.team.resume.resume.dto.CreateResumeRequest;
+import com.team.resume.resume.dto.ExportResumeRequest;
 import com.team.resume.resume.dto.GenerateResumeRequest;
 import com.team.resume.resume.dto.SaveVersionRequest;
 import com.team.resume.resume.service.ResumeService;
+import com.team.resume.resume.vo.ExportFile;
 import com.team.resume.resume.vo.ResumeDetailVO;
 import com.team.resume.resume.vo.ResumeGenerateResultVO;
 import com.team.resume.resume.vo.ResumeSummaryVO;
@@ -77,5 +84,20 @@ public class ResumeController {
                                            @PathVariable("id") Long id,
                                            @PathVariable("versionId") Long versionId) {
         return Result.ok(resumeService.getVersion(userId, id, versionId));
+    }
+
+    @PostMapping("/{id}/export")
+    public ResponseEntity<byte[]> export(@AuthenticationPrincipal Long userId,
+                                         @PathVariable("id") Long id,
+                                         @RequestBody ExportResumeRequest request) {
+        ExportFile file = resumeService.exportDocx(userId, id, request);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(file.filename(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(file.bytes());
     }
 }

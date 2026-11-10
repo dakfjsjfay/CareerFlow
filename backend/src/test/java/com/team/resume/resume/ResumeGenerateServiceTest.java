@@ -55,13 +55,16 @@ class ResumeGenerateServiceTest {
     @Mock
     private ResumeAiService aiService;
 
+    @Mock
+    private com.team.resume.resume.service.ResumeDocxExporter docxExporter;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ResumeService service;
 
     @BeforeEach
     void setUp() {
         service = new ResumeService(resumeMapper, versionMapper, versionService,
-                profileService, assembler, aiService, objectMapper);
+                profileService, assembler, aiService, docxExporter, objectMapper);
     }
 
     @Test
