@@ -42,11 +42,21 @@ class ResumeServiceTest {
     @Mock
     private ResumeVersionService versionService;
 
+    @Mock
+    private com.team.resume.profile.service.ProfileService profileService;
+
+    @Mock
+    private com.team.resume.resume.service.ResumeContentAssembler assembler;
+
+    @Mock
+    private com.team.resume.resume.service.ResumeAiService aiService;
+
     private ResumeService service;
 
     @BeforeEach
     void setUp() {
-        service = new ResumeService(resumeMapper, versionMapper, versionService, new ObjectMapper());
+        service = new ResumeService(resumeMapper, versionMapper, versionService,
+                profileService, assembler, aiService, new ObjectMapper());
     }
 
     @Test
