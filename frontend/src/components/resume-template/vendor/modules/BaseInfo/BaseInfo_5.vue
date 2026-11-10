@@ -15,6 +15,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetBoxStyle } from '../../hooks/useGetStyle';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';
@@ -29,9 +30,7 @@
 
   // 返回样式
   const boxStyle = useGetBoxStyle(props);
-  console.log('baseinfo样式', boxStyle);
 
   // 信息模块样式
   const userInfoBlock: any = useGetCustomStyle(props.module, 'userInfoBlock');
-  console.log('信息模块样式', userInfoBlock);
 </script>

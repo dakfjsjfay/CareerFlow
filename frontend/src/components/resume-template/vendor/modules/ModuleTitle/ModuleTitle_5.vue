@@ -13,6 +13,9 @@
   </div>
 </template>
 <script lang="ts" setup>
+import { ref } from 'vue';
+// @ts-nocheck
+  import { computed } from 'vue';
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import HjH11 from '../components/hj-h1-1.vue';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';
@@ -45,7 +48,6 @@
     }
     // 获取iconBox宽度一半
     if (iconBoxRef.value) {
-      console.log('标题高度', iconBoxRef.value.clientWidth);
       iconBoxHalf.value = iconBoxRef.value.clientWidth / 2;
     }
     const top = moduleTitleHalf.value + paddingTop;

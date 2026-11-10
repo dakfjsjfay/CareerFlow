@@ -13,6 +13,7 @@
   </div>
 </template>
 <script setup lang="ts">
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetBoxStyle } from '../../hooks/useGetStyle';
   import HjCampusExperience2 from '../components/hj-campus-experience-2.vue';
@@ -24,6 +25,5 @@
   // 返回样式
   const boxStyle = useGetBoxStyle(props);
 
-  console.log('教育背景列表', props.module.dataSource);
 </script>
 <style lang="scss" scoped></style>

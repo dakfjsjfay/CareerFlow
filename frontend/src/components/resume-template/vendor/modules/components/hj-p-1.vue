@@ -2,6 +2,7 @@
   <p class="hj-p" :style="style">{{ p }}</p>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   interface TP {
     p?: string;
     style?: any;

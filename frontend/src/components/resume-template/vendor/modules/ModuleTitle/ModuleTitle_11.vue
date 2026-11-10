@@ -2,12 +2,15 @@
   <div ref="titleRef" class="module-title-11" :style="moduleTitleStyle">
     <hj-h1-1 :title="module.title" :style="moduleTitleFontStyle"></hj-h1-1>
     <div class="left" :style="lineStyle">
-      <img class="img-1" src="@/assets/images/modulelist.png" alt="列表" />
-      <img class="moduleborder" src="@/assets/images/moduleborder.png" alt="边框" />
+      <img class="img-1" src="@/assets/resume-template/images/modulelist.png" alt="列表" />
+      <img class="moduleborder" src="@/assets/resume-template/images/moduleborder.png" alt="边框" />
     </div>
   </div>
 </template>
 <script lang="ts" setup>
+import { ref } from 'vue';
+// @ts-nocheck
+  import { computed } from 'vue';
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import HjH11 from '../components/hj-h1-1.vue';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';

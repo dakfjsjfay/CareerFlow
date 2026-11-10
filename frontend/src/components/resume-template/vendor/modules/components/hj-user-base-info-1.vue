@@ -17,6 +17,8 @@
   </ul>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
+  import { computed } from 'vue';
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';
 

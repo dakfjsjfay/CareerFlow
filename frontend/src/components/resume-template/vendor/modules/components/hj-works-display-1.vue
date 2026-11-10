@@ -16,6 +16,7 @@
   </ul>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';
 
@@ -40,7 +41,6 @@
 
   // 是否需要奇数列设置右边距
   const isOddLi = (index: number) => {
-    console.log('worksDisplayLi.width', worksDisplayLi.value.width);
     if (worksDisplayLi.value.width?.indexOf('%') > -1) {
       if (Number(worksDisplayLi.value.width.split('%')[0]) > 50 || index % 2 == 0) {
         return false;

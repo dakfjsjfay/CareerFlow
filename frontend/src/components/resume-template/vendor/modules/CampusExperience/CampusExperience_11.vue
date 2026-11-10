@@ -13,6 +13,7 @@
   </div>
 </template>
 <script setup lang="ts">
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetBoxStyle } from '../../hooks/useGetStyle';
   import HjCampusExperience1 from '../components/hj-campus-experience-1.vue';

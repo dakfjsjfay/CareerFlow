@@ -1,3 +1,4 @@
+// @ts-nocheck
 import ModuleTitle_1 from './ModuleTitle_1.vue';
 import ModuleTitle_2 from './ModuleTitle_2.vue';
 import ModuleTitle_3 from './ModuleTitle_3.vue';

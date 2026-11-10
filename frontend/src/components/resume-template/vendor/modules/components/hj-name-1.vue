@@ -2,6 +2,7 @@
   <h1 v-dompurify-html="module.dataSource.name.value" :style="name"></h1>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';
 

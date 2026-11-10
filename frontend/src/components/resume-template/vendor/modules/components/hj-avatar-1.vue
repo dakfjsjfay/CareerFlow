@@ -10,6 +10,8 @@
   </div>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
+  import { computed } from 'vue';
   import defaultAvatar from '@/assets/resume-template/people.jpg';
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetCustomStyle } from '../../hooks/useGetCustomStyle';

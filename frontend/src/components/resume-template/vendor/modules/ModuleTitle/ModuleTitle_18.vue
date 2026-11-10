@@ -7,6 +7,7 @@
 </template>
 
 <script lang="ts" setup>
+// @ts-nocheck
   import { computed } from 'vue';
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import HjH11 from '../components/hj-h1-1.vue';

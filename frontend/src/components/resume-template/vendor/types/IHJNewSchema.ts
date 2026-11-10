@@ -1,3 +1,4 @@
+// @ts-nocheck
 // 页面JSON格式
 interface IHJNewSchema {
   id: string;

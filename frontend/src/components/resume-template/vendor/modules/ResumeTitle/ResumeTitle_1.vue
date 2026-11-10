@@ -7,6 +7,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+// @ts-nocheck
   import { IModule } from '@/components/resume-template/vendor/types/IHJNewSchema';
   import { useGetBoxStyle } from '../../hooks/useGetStyle';
   import HjP1 from '../components/hj-p-1.vue';

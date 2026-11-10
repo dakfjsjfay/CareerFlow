@@ -13,7 +13,8 @@ function isBlank(value: unknown): boolean {
 }
 
 function deepClone<T>(value: T): T {
-  return structuredClone(value)
+  // 模板来自 Vue reactive prop，structuredClone 无法克隆 Proxy；JSON 数据可以直接深拷贝
+  return JSON.parse(JSON.stringify(value)) as T
 }
 
 function setField(module: TemplateModule, field: string, value: unknown, show?: boolean): void {
