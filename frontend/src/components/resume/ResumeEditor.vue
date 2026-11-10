@@ -113,7 +113,7 @@
           <el-input
             :model-value="(project.techStack ?? []).join('、')"
             placeholder="Java、MySQL"
-            @update:model-value="(value) => updateTechStack(project, String(value))"
+            @update:model-value="onTechStackInput(project, $event)"
           />
         </el-form-item>
         <div class="grid-2">
@@ -228,6 +228,10 @@ function splitTags(value: string): string[] {
 
 function updateTechStack(project: ResumeProject, value: string): void {
   project.techStack = splitTags(value)
+}
+
+function onTechStackInput(project: ResumeProject, value: unknown): void {
+  updateTechStack(project, value == null ? '' : String(value))
 }
 
 function addEducation(): void {

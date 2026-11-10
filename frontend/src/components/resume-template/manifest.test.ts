@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { TEMPLATES } from './manifest'
 import type { TemplateJson } from './types'
 
-const templateModules = import.meta.glob<TemplateJson>('./templates/*.json', { eager: true })
+const templateModules = import.meta.glob<{ default: TemplateJson }>('./templates/*.json', {
+  eager: true,
+})
 
 interface LoadedTemplate {
   path: string
@@ -13,7 +15,7 @@ interface LoadedTemplate {
 function loadedTemplates(): LoadedTemplate[] {
   return Object.entries(templateModules).map(([path, module]) => ({
     path,
-    template: (module as { default: TemplateJson }).default,
+    template: module.default,
   }))
 }
 

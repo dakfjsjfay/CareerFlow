@@ -246,6 +246,11 @@ const metaById = new Map(metadata.map((item) => [item.id, item]))
 const covers = new Map()
 
 for (const [id] of TEMPLATES) {
+  // 已压缩的 JPEG 封面优先复用，避免重复下载 12MB 原图
+  if (fs.existsSync(path.join(ROOT, 'src/assets/resume-template/covers', `${id}.jpg`))) {
+    covers.set(id, `${id}.jpg`)
+    continue
+  }
   const url = metaById.get(id)?.cover
   if (!url) {
     covers.set(id, null)

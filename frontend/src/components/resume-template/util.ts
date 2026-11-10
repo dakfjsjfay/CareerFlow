@@ -6,7 +6,9 @@ export function formatDate(
     const start = formatMonth(value[0])
     const endRaw = value[1]
     const end =
-      endRaw && !/^\d{4}([-/.]\d{1,2})?$/.test(endRaw) ? endRaw : formatMonth(endRaw)
+      endRaw && !/^\d{4}([-/.]\d{1,2})?([-/.]\d{1,2})?$/.test(endRaw)
+        ? endRaw
+        : formatMonth(endRaw)
     if (!start && !end) {
       return ''
     }
