@@ -1,7 +1,10 @@
 package com.team.resume.ai;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.stereotype.Component;
 
@@ -10,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
+import com.team.resume.ai.dto.JdParseResult;
 import com.team.resume.ai.dto.ResumeGenerationResult;
 import com.team.resume.ai.dto.ResumeGenerationResult.Highlight;
 import com.team.resume.common.BusinessException;
@@ -68,6 +72,47 @@ public class AIResponseParser {
                 readStringList(root, "jobGapSuggestions"),
                 readStringList(root, "missingFields"),
                 readStringList(root, "warnings"));
+    }
+
+    /**
+     * JD 解析结果：技能条目缺技能名直接忽略；importance 非法时归为 REQUIRED；
+     * weight 超界时收敛到 (0,100]，保留 1 位小数。
+     * 一条技能都解析不出来时返回 502（不落库）。
+     */
+    public JdParseResult parseJdResult(String content) {
+        JsonNode root = readJson(content);
+        String position = root.path("position").asText("").trim();
+
+        List<JdParseResult.Requirement> requirements = new ArrayList<>();
+        JsonNode reqNode = root.get("requirements");
+        if (reqNode != null && reqNode.isArray()) {
+            reqNode.forEach(item -> {
+                String skill = item.path("skill").asText("").trim();
+                if (skill.isEmpty()) {
+                    return;
+                }
+                String importance = item.path("importance").asText("").trim()
+                        .toUpperCase(Locale.ROOT);
+                if (!"REQUIRED".equals(importance) && !"PREFERRED".equals(importance)) {
+                    importance = "REQUIRED";
+                }
+                double weight = item.path("weight").asDouble(0);
+                if (weight <= 0) {
+                    weight = 10;
+                }
+                if (weight > 100) {
+                    weight = 100;
+                }
+                requirements.add(new JdParseResult.Requirement(
+                        skill,
+                        importance,
+                        BigDecimal.valueOf(weight).setScale(1, RoundingMode.HALF_UP)));
+            });
+        }
+        if (requirements.isEmpty()) {
+            throw new BusinessException(502, "AI 未能从 JD 中解析出技能要求，请稍后重试");
+        }
+        return new JdParseResult(position, requirements);
     }
 
     /**

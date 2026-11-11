@@ -96,6 +96,13 @@
             <version>${mybatis-plus.version}</version>
         </dependency>
 
+        <!-- 分页插件依赖（MyBatis-Plus 3.5.9+ 拆分出 jsqlparser 模块） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+
         <!-- MySQL 驱动（版本由 Spring Boot BOM 管理） -->
         <dependency>
             <groupId>com.mysql</groupId>

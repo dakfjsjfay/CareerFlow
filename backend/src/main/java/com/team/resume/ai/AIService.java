@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
+import com.team.resume.ai.dto.JdParseResult;
 import com.team.resume.ai.dto.Message;
 import com.team.resume.ai.dto.ResumeGenerationResult;
 
@@ -81,6 +82,18 @@ public class AIService {
 
         String content = deepSeekClient.completeJson(messages);
         return responseParser.parseDocumentAnalysis(content);
+    }
+
+    /**
+     * 解析岗位 JD：提取岗位名称与技能要求（必备/加分 + 权重）。
+     * 用于岗位中心的「AI 解析 JD」能力。
+     */
+    public JdParseResult parseJd(String jdContent) {
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.jdParsePrompt()),
+                new Message("user", "以下是需要解析的 JD 文本：\n\n" + jdContent));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseJdResult(content);
     }
 
     /**

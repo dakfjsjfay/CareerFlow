@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @MapperScan({"com.team.resume.mapper", "com.team.resume.auth.mapper",
         "com.team.resume.chat.mapper", "com.team.resume.profile.mapper",
-        "com.team.resume.resume.mapper"})
+        "com.team.resume.resume.mapper", "com.team.resume.job.mapper"})
 public class CareerFlowApplication {
 
     public static void main(String[] args) {

@@ -4,6 +4,10 @@
 -- 执行方式：mysql -u root -p < init.sql（可重复执行）
 -- ============================================================
 
+-- ⚠️ 中文 Windows 的 mysql 客户端默认连接字符集是 GBK，重定向 UTF-8 脚本时
+-- 中文会被存成乱码甚至报 "Data too long"。必须先强制连接字符集。
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS ai_resume
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
