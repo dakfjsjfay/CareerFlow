@@ -1,0 +1,143 @@
+{
+  "source": "docs/reference/mock-jobs/mock-jobs.json",
+  "jobs": [
+    {
+      "sourceId": "MOCK-JAVA-01",
+      "id": 1001,
+      "note": "演示岗：保留深圳 Java 方向，并补充 Redis/Docker 作为加分项",
+      "skills": [
+        { "skill": "Java", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "Spring Boot", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "MySQL", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "Redis", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "Docker", "importance": "PREFERRED", "weight": 15 }
+      ],
+      "jdOverrides": {
+        "bonusAdd": ["了解 Redis 缓存与 Docker 容器的基础使用"],
+        "skillKeywordsAdd": ["Redis", "Docker"]
+      }
+    },
+    {
+      "sourceId": "MOCK-BACKEND-02",
+      "id": 1002,
+      "skills": [
+        { "skill": "Python", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "MySQL", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "RESTful", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "Go", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "Redis", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-FRONTEND-03",
+      "id": 1003,
+      "note": "前端四大基础 HTML/CSS/JavaScript/Vue 均为 REQUIRED，TypeScript 为 PREFERRED",
+      "skills": [
+        { "skill": "HTML", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "CSS", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "JavaScript", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "Vue", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "TypeScript", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-ALGO-04",
+      "id": 1004,
+      "skills": [
+        { "skill": "Python", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "PyTorch", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "机器学习", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "数据清洗", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "实验评估", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-QA-05",
+      "id": 1005,
+      "skills": [
+        { "skill": "测试用例", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "缺陷管理", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "SQL", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "Postman", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "Python", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-PM-06",
+      "id": 1006,
+      "skills": [
+        { "skill": "需求分析", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "原型设计", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "跨团队沟通", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "流程图", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "文档撰写", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-SOCIAL-07",
+      "id": 1007,
+      "skills": [
+        { "skill": "内容策划", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "文案编辑", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "排版", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "数据复盘", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "选题库", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-DATA-08",
+      "id": 1008,
+      "skills": [
+        { "skill": "SQL", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "Excel", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "Python", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "指标体系", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "可视化", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-UX-09",
+      "id": 1009,
+      "skills": [
+        { "skill": "交互原型", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "线框图", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "Figma", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "设计规范", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "可用性", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-ACC-10",
+      "id": 1010,
+      "skills": [
+        { "skill": "凭证整理", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "账务录入", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "Excel", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "费用报销", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "档案归档", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-TRADE-11",
+      "id": 1011,
+      "skills": [
+        { "skill": "商务英语", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "单证核对", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "Excel", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "报价表", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "客户台账", "importance": "PREFERRED", "weight": 10 }
+      ]
+    },
+    {
+      "sourceId": "MOCK-COPY-12",
+      "id": 1012,
+      "skills": [
+        { "skill": "文案撰写", "importance": "REQUIRED", "weight": 30 },
+        { "skill": "选题策划", "importance": "REQUIRED", "weight": 25 },
+        { "skill": "品牌语气", "importance": "REQUIRED", "weight": 20 },
+        { "skill": "校对", "importance": "PREFERRED", "weight": 15 },
+        { "skill": "脚本", "importance": "PREFERRED", "weight": 10 }
+      ]
+    }
+  ]
+}

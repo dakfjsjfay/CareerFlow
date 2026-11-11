@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOCK 模拟岗位种子库 · 演示</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --card:#ffffff; --text:#1f1f1f; --muted:#6b6b6b;
+    --line:#e4e4df; --mock-bg:#fff4dc; --mock-line:#e8cf9a; --mock-text:#7a4f00;
+    --ink:#2b2b2b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:14px;line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px 48px}
+
+  .banner{background:var(--mock-bg);border-bottom:1px solid var(--mock-line);color:var(--mock-text)}
+  .banner .wrap{padding-top:12px;padding-bottom:12px;display:flex;gap:12px;align-items:flex-start}
+  .banner .flag{flex:none;font-size:12px;font-weight:500;letter-spacing:.5px;
+    border:1px solid var(--mock-line);background:#fffaf0;border-radius:4px;padding:2px 8px;margin-top:1px}
+  .banner p{margin:0;font-size:13px}
+
+  header{padding:32px 0 20px}
+  h1{font-size:22px;font-weight:500;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0}
+  .stats{display:flex;gap:28px;margin-top:18px;padding:14px 18px;background:var(--card);
+    border:1px solid var(--line);border-radius:10px}
+  .stat b{display:block;font-size:20px;font-weight:500;line-height:1.3}
+  .stat span{font-size:12px;color:var(--muted)}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:22px 0 12px}
+  input,select,button{font:inherit;font-size:13px;color:var(--text);background:var(--card);
+    border:1px solid var(--line);border-radius:8px;padding:8px 12px;outline:none}
+  input{flex:1;min-width:220px}
+  input:focus,select:focus{border-color:#b9b9b0}
+  button{cursor:pointer}
+  button:hover{background:#f2f2ee}
+  button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.primary:hover{background:#3d3d3d}
+  .count{font-size:12px;color:var(--muted);margin:0 0 14px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .job{position:relative;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:18px 18px 16px;cursor:pointer;transition:border-color .15s}
+  .job:hover{border-color:#b9b9b0}
+  .tag-mock{position:absolute;top:14px;right:14px;font-size:11px;letter-spacing:.5px;
+    color:var(--mock-text);background:var(--mock-bg);border:1px solid var(--mock-line);
+    border-radius:4px;padding:1px 6px}
+  .job h2{font-size:16px;font-weight:500;margin:0 30px 4px 0}
+  .company{font-size:12px;color:var(--muted);margin:0 0 10px}
+  .company .fic{border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:6px;font-size:11px}
+  .meta{font-size:12px;color:var(--muted);margin:0 0 10px}
+  .summary{font-size:13px;color:#4a4a4a;margin:0 0 12px;min-height:42px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .tags span{font-size:11px;color:#4a4a4a;background:#f4f4f1;border:1px solid var(--line);
+    border-radius:4px;padding:1px 7px}
+  .more{font-size:12px;color:var(--muted)}
+
+  .empty{padding:40px;text-align:center;color:var(--muted);background:var(--card);
+    border:1px solid var(--line);border-radius:10px}
+
+  .overlay{display:none;position:fixed;inset:0;background:rgba(28,28,26,.42);
+    z-index:10;padding:32px 16px;overflow:auto}
+  .overlay.on{display:block}
+  .panel{max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:24px 26px}
+  .panel-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .panel h2{font-size:20px;font-weight:500;margin:8px 0 2px}
+  .close{border:none;background:transparent;font-size:22px;line-height:1;color:var(--muted);padding:2px 6px}
+  .panel .meta{margin:6px 0 14px}
+  .panel h3{font-size:13px;font-weight:500;margin:20px 0 8px;padding-bottom:6px;
+    border-bottom:1px solid var(--line)}
+  .panel ol,.panel ul{margin:0;padding-left:20px}
+  .panel li{font-size:13px;margin:0 0 6px}
+  .panel .foot{margin-top:22px;padding:12px;background:var(--mock-bg);
+    border:1px solid var(--mock-line);border-radius:8px;font-size:12px;color:var(--mock-text)}
+
+  details{margin-top:28px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 18px}
+  summary{cursor:pointer;font-size:14px;font-weight:500}
+  details ul{margin:12px 0 0;padding-left:20px;color:#4a4a4a;font-size:13px}
+  details li{margin-bottom:6px}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);line-height:1.8}
+  #selfcheck{display:inline-block;border:1px solid var(--line);background:#f1f5ee;
+    color:#3b6d11;border-radius:6px;padding:4px 10px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="wrap">
+    <span class="flag">MOCK</span>
+    <p>本页所有岗位均为模拟数据,不对应任何真实招聘。公司名全部虚构,城市、薪资、人数为合理模拟;不含 HR 联系方式与投递入口,请勿按真实岗位理解或传播。</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <h1>模拟岗位种子库</h1>
+    <p class="sub">参考公开岗位的「职责 / 要求」常见写法改写 · 仅用于页面演示与匹配练习</p>
+    <div class="stats">
+      <div class="stat"><b id="s-total">0</b><span>模拟岗位</span></div>
+      <div class="stat"><b id="s-cat">0</b><span>岗位方向</span></div>
+      <div class="stat"><b id="s-skill">0</b><span>通用技能词</span></div>
+      <div class="stat"><b>100%</b><span>数据带 MOCK 标识</span></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="搜索岗位名、公司、城市或技能词">
+    <select id="cat"><option value="">全部方向</option></select>
+    <button id="reset">重置</button>
+    <button id="export" class="primary">导出 MOCK JSON</button>
+  </div>
+  <p class="count" id="count"></p>
+  <div class="grid" id="grid"></div>
+
+  <details>
+    <summary>方法与合规说明</summary>
+    <ul>
+      <li><b>只抽骨架和词表,句子自己重写。</b>参考的是公开岗位的结构(职责 4–6 条、要求 3–5 条、加分项、待遇)和通用技能名词,没有复制任何岗位原文,也不是「换几个词」式的改写。</li>
+      <li><b>虚构化到组合级别。</b>公司名全部虚构,不与真实城市、薪资、人数形成可反查的组合;内部产品名、系统名一律不出现。</li>
+      <li><b>MOCK 覆盖所有视图。</b>页面横幅、列表卡片、详情面板、导出文件名与导出数据(每条 <code>isMock: true</code> + <code>meta.notice</code>)都带标识,导出后仍不会变成「看起来像真招聘」的数据。</li>
+      <li><b>上线前可跑自检。</b>同目录 <code>build.js</code> 会检查 MOCK 字段、联系方式 / 外链 / 真实企业名、条数区间、重复句子,任一项不通过就不产出文件;本页页脚也做了一次运行时自检。</li>
+    </ul>
+  </details>
+
+  <footer>
+    <span id="selfcheck">自检中…</span><br>
+    数据来源:人工参考公开岗位的常见写法后改写,不含任何真实招聘信息、HR 联系方式与投递入口。<br>
+    配套文件:mock-jobs.js(唯一数据源)、mock-jobs.json、word-bank.json、build.js(构建与合规自检)。
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel" id="panel"></div>
+</div>
+
+<script src="mock-jobs.js"></script>
+<script>
+(function () {
+  var data = window.MOCK_DATA;
+  var jobs = data.jobs;
+  var grid = document.getElementById("grid");
+  var q = document.getElementById("q");
+  var cat = document.getElementById("cat");
+  var count = document.getElementById("count");
+  var overlay = document.getElementById("overlay");
+  var panel = document.getElementById("panel");
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  var cats = Array.from(new Set(jobs.map(function (j) { return j.category; })));
+  cats.forEach(function (c) {
+    var o = document.createElement("option");
+    o.value = c; o.textContent = c;
+    cat.appendChild(o);
+  });
+
+  var skillWords = new Set();
+  jobs.forEach(function (j) { j.skills.forEach(function (s) { skillWords.add(s); }); });
+  document.getElementById("s-total").textContent = jobs.length;
+  document.getElementById("s-cat").textContent = cats.length;
+  document.getElementById("s-skill").textContent = skillWords.size;
+
+  function filtered() {
+    var kw = q.value.trim().toLowerCase();
+    var c = cat.value;
+    return jobs.filter(function (j) {
+      if (c && j.category !== c) return false;
+      if (!kw) return true;
+      var hay = [j.title, j.company, j.city, j.category, j.summary]
+        .concat(j.skills).join(" ").toLowerCase();
+      return hay.indexOf(kw) !== -1;
+    });
+  }
+
+  function render() {
+    var list = filtered();
+    count.textContent = "共 " + list.length + " 个模拟岗位" + (list.length < jobs.length ? "(已筛选)" : "") + " · 全部带 MOCK 标识";
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty">没有匹配的模拟岗位,换个关键词试试</div>';
+      return;
+    }
+    grid.innerHTML = list.map(function (j) {
+      return '<div class="job" data-id="' + esc(j.id) + '">' +
+        '<span class="tag-mock">MOCK</span>' +
+        '<h2>' + esc(j.title) + '</h2>' +
+        '<p class="company">' + esc(j.company) + '<span class="fic">虚构</span></p>' +
+        '<p class="meta">' + esc(j.city) + ' · ' + esc(j.salary) + ' · ' + esc(j.attendance) + '</p>' +
+        '<p class="summary">' + esc(j.summary) + '</p>' +
+        '<div class="tags">' + j.skills.slice(0, 4).map(function (s) {
+          return '<span>' + esc(s) + '</span>';
+        }).join("") + '</div>' +
+        '<span class="more">查看详情 →</span>' +
+        '</div>';
+    }).join("");
+  }
+
+  function listItems(arr) {
+    return arr.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("");
+  }
+
+  function openDetail(id) {
+    var j = jobs.find(function (x) { return x.id === id; });
+    if (!j) return;
+    panel.innerHTML =
+      '<div class="panel-top"><div><span class="tag-mock" style="position:static;display:inline-block">MOCK · 模拟岗位</span>' +
+      '<h2>' + esc(j.title) + '</h2></div>' +
+      '<button class="close" id="close" aria-label="关闭">×</button></div>' +
+      '<p class="company">' + esc(j.company) + '<span class="fic">虚构名称</span> · ' + esc(j.category) + '</p>' +
+      '<p class="meta">' + esc(j.city) + ' · ' + esc(j.salary) + ' · ' + esc(j.attendance) + ' · 模拟招聘 ' + j.headcount + ' 人</p>' +
+      '<p class="summary">' + esc(j.summary) + '</p>' +
+      '<h3>岗位职责</h3><ol>' + listItems(j.responsibilities) + '</ol>' +
+      '<h3>任职要求</h3><ol>' + listItems(j.requirements) + '</ol>' +
+      '<h3>加分项</h3><ul>' + listItems(j.bonus) + '</ul>' +
+      '<h3>模拟待遇</h3><ul>' + listItems(j.perks) + '</ul>' +
+      '<h3>技能词</h3><div class="tags">' + j.skills.map(function (s) {
+        return '<span>' + esc(s) + '</span>';
+      }).join("") + '</div>' +
+      '<div class="foot">' + esc(j.mockNotice) + '。公司名、城市、薪资、人数均为虚构或合理模拟,不含 HR 联系方式与投递入口。</div>';
+    overlay.classList.add("on");
+    document.getElementById("close").onclick = closeDetail;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeDetail() {
+    overlay.classList.remove("on");
+    document.body.style.overflow = "";
+  }
+
+  grid.addEventListener("click", function (e) {
+    var card = e.target.closest(".job");
+    if (card) openDetail(card.getAttribute("data-id"));
+  });
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) closeDetail();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeDetail();
+  });
+
+  q.addEventListener("input", render);
+  cat.addEventListener("change", render);
+  document.getElementById("reset").onclick = function () {
+    q.value = ""; cat.value = ""; render();
+  };
+
+  document.getElementById("export").onclick = function () {
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "MOCK-岗位数据.json";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  };
+
+  // 运行时自检:与 build.js 的检查口径保持一致
+  var contactRe = /(1[3-9]\d{9}|[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}|https?:\/\/|www\.)/i;
+  var bad = jobs.filter(function (j) {
+    return !j.isMock || !j.companyIsFictional || contactRe.test(JSON.stringify(j));
+  });
+  var el = document.getElementById("selfcheck");
+  if (bad.length === 0 && data.meta.isMock === true) {
+    el.textContent = "运行时自检通过:" + jobs.length + "/" + jobs.length +
+      " 条记录带 isMock,未发现联系方式或外部链接";
+  } else {
+    el.textContent = "运行时自检未通过:" + bad.length + " 条记录存在问题";
+    el.style.background = "#fcebeb";
+    el.style.color = "#a32d2d";
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

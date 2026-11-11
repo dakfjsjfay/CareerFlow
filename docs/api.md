@@ -491,8 +491,8 @@ PDF 由前端把预览区交给浏览器打印生成（与模板样式 100% 一�
   "data": {
     "total": 12, "page": 1, "size": 10,
     "records": [
-      { "id": 1001, "company": "星云科技", "position": "Java 开发实习生",
-        "city": "深圳", "salary": "200-300元/天", "sourceType": "MOCK",
+      { "id": 1001, "company": "云屿网络科技", "position": "Java 开发实习生",
+        "city": "深圳", "salary": "150–200 元/天", "sourceType": "MOCK",
         "externalUrl": null, "createdAt": "2026-11-10T10:00:00" }
     ]
   }
@@ -507,15 +507,17 @@ PDF 由前端把预览区交给浏览器打印生成（与模板样式 100% 一�
 {
   "code": 200, "message": "success",
   "data": {
-    "id": 1001, "company": "星云科技", "position": "Java 开发实习生",
-    "city": "深圳", "salary": "200-300元/天",
+    "id": 1001, "company": "云屿网络科技", "position": "Java 开发实习生",
+    "city": "深圳", "salary": "150–200 元/天",
     "jdContent": "岗位职责：……任职要求：熟悉 Java、Spring Boot、MySQL，了解 Redis 与 Docker。",
     "sourceType": "MOCK", "externalUrl": null,
     "createdAt": "2026-11-10T10:00:00", "updatedAt": "2026-11-10T10:00:00",
     "requirements": [
       { "id": 1, "skill": "Java", "importance": "REQUIRED", "weight": 25.00 },
       { "id": 2, "skill": "Spring Boot", "importance": "REQUIRED", "weight": 25.00 },
-      { "id": 3, "skill": "MySQL", "importance": "REQUIRED", "weight": 20.00 }
+      { "id": 3, "skill": "MySQL", "importance": "REQUIRED", "weight": 20.00 },
+      { "id": 4, "skill": "Redis", "importance": "PREFERRED", "weight": 15.00 },
+      { "id": 5, "skill": "Docker", "importance": "PREFERRED", "weight": 15.00 }
     ]
   }
 }
@@ -525,10 +527,10 @@ PDF 由前端把预览区交给浏览器打印生成（与模板样式 100% 一�
 
 ```json
 {
-  "company": "星云科技",
+  "company": "云屿网络科技",
   "position": "Java 开发实习生",
   "city": "深圳",
-  "salary": "200-300元/天",
+  "salary": "150–200 元/天",
   "jdContent": "岗位要求：熟悉 Java、MySQL。",
   "externalUrl": null,
   "requirements": [
