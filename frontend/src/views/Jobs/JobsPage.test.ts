@@ -7,9 +7,18 @@ const api = vi.hoisted(() => ({
   listJobs: vi.fn(),
   getJob: vi.fn(),
   parseJob: vi.fn(),
+  recommendJobs: vi.fn(),
 }))
 
-vi.mock('@/api/jobs', () => api)
+vi.mock('@/api/jobs', () => ({
+  listJobs: api.listJobs,
+  getJob: api.getJob,
+  parseJob: api.parseJob,
+}))
+
+vi.mock('@/api/match', () => ({
+  recommendJobs: api.recommendJobs,
+}))
 
 import JobsPage from './index.vue'
 

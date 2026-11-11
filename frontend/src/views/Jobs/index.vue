@@ -4,8 +4,13 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { getJob, listJobs, parseJob, type JobDetail, type JobSummary } from '@/api/jobs'
+import { recommendJobs, type RecommendItem } from '@/api/match'
 
 const router = useRouter()
+
+const recommendVisible = ref(false)
+const recommendLoading = ref(false)
+const recommendItems = ref<RecommendItem[]>([])
 
 const filters = reactive({
   keyword: '',
@@ -102,6 +107,24 @@ function openExternal(url: string | null): void {
   }
 }
 
+async function openRecommend(): Promise<void> {
+  recommendVisible.value = true
+  recommendLoading.value = true
+  try {
+    const res = await recommendJobs(1, 50)
+    recommendItems.value = res.data.items
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '推荐加载失败，请稍后重试'))
+  } finally {
+    recommendLoading.value = false
+  }
+}
+
+function goMatchFromRecommend(jobId: number): void {
+  recommendVisible.value = false
+  router.push(`/match/${jobId}`)
+}
+
 onMounted(() => {
   void loadJobs()
 })
@@ -147,6 +170,9 @@ onMounted(() => {
           搜索
         </el-button>
         <el-button data-testid="jobs-reset" @click="handleReset">重置</el-button>
+        <el-button type="primary" plain data-testid="jobs-recommend" @click="openRecommend">
+          智能推荐
+        </el-button>
       </div>
     </el-card>
 
@@ -274,6 +300,41 @@ onMounted(() => {
         </template>
       </div>
     </el-drawer>
+
+    <el-dialog
+      v-model="recommendVisible"
+      title="为你推荐（按匹配度排序）"
+      width="640px"
+      data-testid="jobs-recommend-dialog"
+    >
+      <div v-loading="recommendLoading" class="recommend-body">
+        <el-empty v-if="!recommendLoading && recommendItems.length === 0" description="暂无推荐岗位" />
+        <div
+          v-for="item in recommendItems"
+          :key="item.jobId"
+          class="recommend-item"
+          data-testid="recommend-item"
+        >
+          <div class="recommend-main">
+            <p class="recommend-position">{{ item.position }}</p>
+            <p class="recommend-company">
+              {{ item.company || '未注明公司' }}
+              <span v-if="item.city">· {{ item.city }}</span>
+              <span v-if="item.salary">· {{ item.salary }}</span>
+            </p>
+            <p v-for="reason in item.rankReasons" :key="reason" class="recommend-reason">
+              ⚠️ {{ reason }}
+            </p>
+          </div>
+          <div class="recommend-side">
+            <span class="recommend-score" data-testid="recommend-score">{{ item.matchScore }}</span>
+            <el-button size="small" type="primary" plain @click="goMatchFromRecommend(item.jobId)">
+              去分析
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -436,5 +497,52 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.recommend-body {
+  min-height: 120px;
+}
+
+.recommend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--cf-border);
+}
+
+.recommend-item:last-child {
+  border-bottom: none;
+}
+
+.recommend-position {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.recommend-company {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--cf-text-secondary);
+}
+
+.recommend-reason {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #b45309;
+}
+
+.recommend-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.recommend-score {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cf-primary);
 }
 </style>
