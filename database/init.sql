@@ -1,7 +1,9 @@
 -- ============================================================
 -- CareerFlow-AI 智能求职助手 数据库初始化脚本
 -- 依据：docs/database.md v1.1（17 张表）
--- 执行方式：mysql -u root -p < init.sql（可重复执行）
+-- 执行方式（密码交互输入，不写入脚本）：
+--   mysql --default-character-set=utf8mb4 -u root -p < database/init.sql
+-- 说明：可重复执行；Windows 客户端必须指定 utf8mb4，否则中文注释/字段可能报 1366。
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS ai_resume
@@ -9,6 +11,8 @@ CREATE DATABASE IF NOT EXISTS ai_resume
   COLLATE utf8mb4_unicode_ci;
 
 USE ai_resume;
+
+SET NAMES utf8mb4;
 
 -- ---------- 1. 用户表 ----------
 CREATE TABLE IF NOT EXISTS sys_user (

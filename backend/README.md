@@ -4,37 +4,48 @@
 
 ## 本地启动
 
-1. 复制根目录 `.env.example` 为 `.env`，填入你的 MySQL 密码与 DeepSeek API Key（`.env` 不会进 Git）
-2. 在 Git Bash 中加载环境变量并启动（Spring Boot 不会自动读取 .env 文件，需要 source 一下）：
+1. 复制根目录 `.env.example` 为 `.env`，填入你的 MySQL 密码与 DeepSeek API Key（`.env` 不会进 Git）。
+2. 初始化数据库（首次或需要重置种子数据时）：
+
+```bash
+cd d:/GitHubCode/CareerFlow
+mysql --default-character-set=utf8mb4 -u root -p < database/init.sql
+mysql --default-character-set=utf8mb4 -u root -p < database/seed.sql
+```
+
+详细说明见 [database/README.md](../database/README.md)。
+
+3. 在 Git Bash 中加载环境变量并启动（Spring Boot 不会自动读取 `.env` 文件，需要 source 一下）：
 
 ```bash
 cd backend
-set -a && source ../.env && set +a
+set -a && source <(tr -d '\r' < ../.env) && set +a
 mvn spring-boot:run
 ```
 
-3. 验证：浏览器或 curl 访问 `http://localhost:8080/api/health`，应返回：
+4. 验证：浏览器或 curl 访问 `http://localhost:8080/api/health`，应返回：
 
 ```json
-{ "code": 200, "message": "success", "data": { "status": "UP", "service": "careerflow-backend" } }
+{ "code": 200, "message": "success", "data": { "status": "UP", "service": "careerflow-backend", "database": "UP" } }
 ```
 
-## 当前状态（Day 1）
+## 当前状态（D8）
 
-- 仅工程骨架：统一响应 Result、全局异常处理、健康检查、跨域配置
-- 业务表与业务接口从 D2 起按 docs/database.md、docs/api.md 开发
-- MyBatis-Plus 仅集成依赖与配置，尚未建 Mapper
+- 已完成：认证、对话建档、证据链、个人档案、完整度、简历生成/版本/PDF/DOCX 导出、岗位中心与 JD 解析。
+- 进行中：D9 匹配分析。
+- 数据库初始化与种子数据说明见 [database/README.md](../database/README.md)。
 
 ## 包结构
 
-```
+```text
 com.team.resume
-├── common       统一响应、异常处理、工具
-├── config       全局配置
-├── controller   接口层（D2 起按业务模块拆分）
-├── mapper       数据库访问（D2）
-├── service      业务逻辑（D2）
-├── entity       数据库实体（D2）
-├── dto / vo     请求/返回对象（D2）
-└── ai           AI 服务层（D3 接入 DeepSeek）
+├── ai            DeepSeekClient / AIService / PromptTemplate / AIResponseParser
+├── auth          注册、登录、JWT
+├── chat          会话与消息
+├── common        Result、分页、全局异常
+├── config        Spring Security、CORS
+├── file          文档上传与 OCR 分析
+├── job           岗位中心与 JD 解析（D8）
+├── profile       档案、项目/经历、证据、完整度
+└── resume        简历生成、版本、DOCX 导出
 ```
