@@ -1,6 +1,7 @@
 package com.team.resume.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,8 +12,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -49,6 +52,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void malformedQueryParamReturns400() throws Exception {
+        mockMvc.perform(get("/test/param").param("page", "abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
     void missingResourceReturns404() {
         ResponseEntity<Result<Void>> response = new GlobalExceptionHandler()
                 .handleNotFound(new NoResourceFoundException(HttpMethod.GET, "/api/resumes/"));
@@ -62,6 +72,11 @@ class GlobalExceptionHandlerTest {
 
         @PostMapping("/test/body")
         public Result<Void> body(@RequestBody Payload payload) {
+            return Result.ok();
+        }
+
+        @GetMapping("/test/param")
+        public Result<Void> param(@RequestParam("page") int page) {
             return Result.ok();
         }
     }

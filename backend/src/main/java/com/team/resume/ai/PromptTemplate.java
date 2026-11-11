@@ -17,11 +17,13 @@ public class PromptTemplate {
     private final String chatExtractPrompt;
     private final String documentAnalyzePrompt;
     private final String resumeGeneratePrompt;
+    private final String jobParsePrompt;
 
     public PromptTemplate() {
         this.chatExtractPrompt = read("prompts/chat-extract-prompt.txt");
         this.documentAnalyzePrompt = read("prompts/document-analyze-prompt.txt");
         this.resumeGeneratePrompt = read("prompts/resume-generate-prompt.txt");
+        this.jobParsePrompt = read("prompts/job-parse-prompt.txt");
     }
 
     public String chatExtractPrompt() {
@@ -30,6 +32,10 @@ public class PromptTemplate {
 
     public String resumeGeneratePrompt() {
         return resumeGeneratePrompt;
+    }
+
+    public String jobParsePrompt() {
+        return jobParsePrompt;
     }
 
     public String documentAnalyzePrompt(String analysisType, String jobDescription) {

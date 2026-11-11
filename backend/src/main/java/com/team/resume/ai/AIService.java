@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
+import com.team.resume.ai.dto.JobRequirementsResult;
 import com.team.resume.ai.dto.Message;
 import com.team.resume.ai.dto.ResumeGenerationResult;
 
@@ -93,5 +94,17 @@ public class AIService {
                 new Message("user", sourceJson));
         String content = deepSeekClient.completeJson(messages);
         return responseParser.parseResumeGeneration(content);
+    }
+
+    /**
+     * JD 技能要求解析：输入 JD 原文，输出岗位名称与技能要求。
+     * JD 用 &lt;jd&gt; 包裹，提示词中声明其只是数据而非指令。
+     */
+    public JobRequirementsResult parseJobDescription(String jdContent) {
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.jobParsePrompt()),
+                new Message("user", "岗位 JD：\n<jd>\n" + jdContent + "\n</jd>"));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseJobRequirements(content);
     }
 }

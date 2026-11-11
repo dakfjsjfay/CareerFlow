@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.resume.ai.dto.ChatExtractionResult;
+import com.team.resume.ai.dto.JobRequirementsResult;
 import com.team.resume.ai.dto.Message;
 import com.team.resume.common.BusinessException;
 
@@ -78,5 +79,26 @@ class AIServiceTest {
                 .extracting(e -> ((BusinessException) e).getCode())
                 .isEqualTo(502);
         verify(deepSeekClient, times(2)).completeJson(anyList());
+    }
+
+    @Test
+    void parsesJobDescriptionThroughDedicatedPrompt() {
+        when(deepSeekClient.completeJson(anyList())).thenReturn("""
+                {"position":"Java 开发实习生",
+                 "requirements":[{"skill":"Java","importance":"REQUIRED","weight":100}]}
+                """);
+
+        JobRequirementsResult result = aiService.parseJobDescription("熟悉 Java");
+
+        assertThat(result.position()).isEqualTo("Java 开发实习生");
+        assertThat(result.requirements()).hasSize(1);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Message>> captor = ArgumentCaptor.forClass(List.class);
+        verify(deepSeekClient).completeJson(captor.capture());
+        List<Message> messages = captor.getValue();
+        assertThat(messages.get(0).role()).isEqualTo("system");
+        assertThat(messages.get(0).content()).contains("JD 解析");
+        assertThat(messages.get(1).content()).contains("<jd>").contains("熟悉 Java");
     }
 }

@@ -137,6 +137,21 @@ Chat 2 的 15 张 → +profile_experience（赛题要求工作/实习经历）�
 - 原因：20 套 resume-design 模板大量使用 flex，OpenHTMLtoPDF 不支持 flex；若后端复刻 20 套样式，工作量和走样风险都不可接受。
 - 影响：`POST /api/resumes/{id}/export` 只接受 `format=DOCX`；PDF 不经过后端。导出仍必须指定 `versionId`，旧版本可随时预览/导出。
 
+## D19 岗位中心与 JD 解析（D8 实现）
+
+- 种子数据：`database/seed.sql` 提供 12 条 MOCK 岗位（ID 1001~1012），每条技能权重合计 100；D8 先用临时演示数据打通链路，正式 JD 内容由 C 在此基础上补充/替换。
+- `GET /api/jobs` 返回 `{ total, page, size, records }`；岗位是全局数据，不做 user_id 隔离，但接口仍要求登录。
+- `POST /api/jobs` 仅开发用途，`company/position` 必填，`requirements` 可省略；省略后通过解析接口生成。
+- `POST /api/jobs/{id}/parse` 的 `jdContent` 可选：不传用已保存 JD，传入则先覆盖 JD 再解析；解析成功后覆盖 `job_requirement`，AI 失败返回 502 且不覆盖旧要求。
+- `importance` 只允许 `REQUIRED/PREFERRED`，未知值按 REQUIRED；权重由 JobRequirementRules 归一化为合计 100.00，四舍五入误差放入最后一项。
+
+## D20 数据库脚本执行与密钥管理（D8 收尾）
+
+- 官方流程：交互式 `mysql --default-character-set=utf8mb4 -u root -p < database/init.sql|seed.sql`，密码不进入 SQL、脚本或命令参数。
+- `mysql_config_editor` 仅作为个人开发加速，不作为比赛/评测标准流程；Docker Compose 使用被 Git 忽略的 `.env` 或环境变量。
+- `.env` 本地保存真实值且被 Git 忽略；`.env.example` 只保留占位符。
+- 曾在 Git 历史中出现过的密钥必须轮换；修改 `.env` 不会使旧密钥失效。
+
 ## 已知限制（如实声明）
 
 | # | 限制 | 影响 | 计划 |
@@ -155,6 +170,6 @@ Chat 2 的 15 张 → +profile_experience（赛题要求工作/实习经历）�
 2. Spring Boot 3.x 精确小版本：D1 验证与 mybatis-plus-spring-boot3-starter 兼容性后确定
 3. 简历 content JSON 的最终 schema：✅ D6 已定稿（见 D17 与 docs/api.md §7.4）
 4. 简历模板视觉设计：✅ D6 已定稿，接入 20 套 resume-design 模板；PDF 预览/导出样式一致，DOCX 为独立单栏排版（见 D17/D18）
-5. 种子 JD 具体内容：C 在 D8 前准备 10~20 条
+5. 种子 JD 具体内容：✅ D8 已提供 12 条临时演示数据（database/seed.sql）；正式内容由 C 在此基础上补充/替换
 6. 赛题截图、业务闭环 PDF 尚未放入 docs/reference/：待团队成员提供
 7. 本地 Git 未初始化（远程仓库已建：https://github.com/dakfjsjfay/CareerFlow.git）：D1 完成连接与首次推送

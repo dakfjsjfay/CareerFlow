@@ -463,29 +463,25 @@ PDF 由前端把预览区交给浏览器打印生成（与模板样式 100% 一�
 
 ## 8. 岗位（jobs）
 
+岗位是全局数据（不属于某个用户），但所有接口仍需登录（JWT）。种子数据见 `database/seed.sql`（12 条模拟 JD，ID 1001~1012）。
+
 | 接口 | 方法 | 说明 |
 |---|---|---|
 | /api/jobs | GET | 岗位列表（分页 + 筛选） |
 | /api/jobs/{id} | GET | 岗位详情（含 job_requirement 技能列表） |
 | /api/jobs | POST | 手动新增岗位（MVP 仅开发用途，不开放管理端） |
-| /api/jobs/{id}/parse | POST | AI 解析 JD 生成技能要求 |
+| /api/jobs/{id}/parse | POST | AI 解析 JD 生成技能要求，成功后覆盖该岗位的 job_requirement |
 
-### 8.1 列表筛选参数（二轮审查明确）
+### 8.1 列表筛选参数
 
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| page / size | int | 否 | 分页，默认 1/10 |
+| page / size | int | 否 | 分页，默认 1/10；page < 1 或 size > 50 → 400 |
 | keyword | string | 否 | 关键词，模糊匹配 position、company |
 | city | string | 否 | 城市精确匹配 |
 | salary | string | 否 | 薪资关键字模糊匹配（salary 为文本，见 database.md 已知限制） |
 
 示例：`GET /api/jobs?page=1&size=10&keyword=Java&city=深圳`
-
-JD 解析请求：
-
-```json
-{ "jdContent": "岗位要求：熟悉Java、Spring Boot、MySQL，了解Redis。" }
-```
 
 返回：
 
@@ -493,16 +489,95 @@ JD 解析请求：
 {
   "code": 200, "message": "success",
   "data": {
-    "position": "Java开发实习生",
-    "requirements": [
-      { "skill": "Java", "importance": "REQUIRED", "weight": 30 },
-      { "skill": "Spring Boot", "importance": "REQUIRED", "weight": 30 },
-      { "skill": "MySQL", "importance": "REQUIRED", "weight": 25 },
-      { "skill": "Redis", "importance": "PREFERRED", "weight": 15 }
+    "total": 12, "page": 1, "size": 10,
+    "records": [
+      { "id": 1001, "company": "星云科技", "position": "Java 开发实习生",
+        "city": "深圳", "salary": "200-300元/天", "sourceType": "MOCK",
+        "externalUrl": null, "createdAt": "2026-11-10T10:00:00" }
     ]
   }
 }
 ```
+
+### 8.2 岗位详情
+
+`GET /api/jobs/{id}`：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "id": 1001, "company": "星云科技", "position": "Java 开发实习生",
+    "city": "深圳", "salary": "200-300元/天",
+    "jdContent": "岗位职责：……任职要求：熟悉 Java、Spring Boot、MySQL，了解 Redis 与 Docker。",
+    "sourceType": "MOCK", "externalUrl": null,
+    "createdAt": "2026-11-10T10:00:00", "updatedAt": "2026-11-10T10:00:00",
+    "requirements": [
+      { "id": 1, "skill": "Java", "importance": "REQUIRED", "weight": 25.00 },
+      { "id": 2, "skill": "Spring Boot", "importance": "REQUIRED", "weight": 25.00 },
+      { "id": 3, "skill": "MySQL", "importance": "REQUIRED", "weight": 20.00 }
+    ]
+  }
+}
+```
+
+### 8.3 手动新增岗位（开发用途）
+
+```json
+{
+  "company": "星云科技",
+  "position": "Java 开发实习生",
+  "city": "深圳",
+  "salary": "200-300元/天",
+  "jdContent": "岗位要求：熟悉 Java、MySQL。",
+  "externalUrl": null,
+  "requirements": [
+    { "skill": "Java", "importance": "REQUIRED", "weight": 60 },
+    { "skill": "MySQL", "importance": "REQUIRED", "weight": 40 }
+  ]
+}
+```
+
+`company`、`position` 必填；`requirements` 可省略，省略后可通过解析接口生成。返回岗位详情（同 8.2）。`importance` 只能是 `REQUIRED/PREFERRED`，权重由 Java 归一化为合计 100。
+
+### 8.4 JD 解析
+
+请求体可省略；`jdContent` 可选：
+
+```json
+{ "jdContent": "岗位要求：熟悉Java、Spring Boot、MySQL，了解Redis。" }
+```
+
+行为：
+
+1. 不传 `jdContent` → 使用岗位已保存的 `jd_content`；
+2. 传入 `jdContent` → 先覆盖岗位 JD，再解析（便于人工修正后重新生成要求）；
+3. AI 输出经 Java 结构校验、技能去重、权重归一化后，覆盖该岗位的 `job_requirement`；
+4. 解析失败不覆盖已有技能要求。
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "position": "Java 开发实习生",
+    "requirements": [
+      { "id": 61, "skill": "Java", "importance": "REQUIRED", "weight": 30.00 },
+      { "id": 62, "skill": "Spring Boot", "importance": "REQUIRED", "weight": 25.00 },
+      { "id": 63, "skill": "MySQL", "importance": "REQUIRED", "weight": 25.00 },
+      { "id": 64, "skill": "Redis", "importance": "PREFERRED", "weight": 10.00 },
+      { "id": 65, "skill": "Docker", "importance": "PREFERRED", "weight": 10.00 }
+    ]
+  }
+}
+```
+
+### 8.5 校验与错误
+
+- 岗位不存在 → 404。
+- `page/size` 不合法、创建字段缺失/超长、JD 为空、`importance` 非法 → 400。
+- AI 调用失败、AI 返回非 JSON 或未解析出有效技能 → 502，且不覆盖已有技能要求。
 
 ## 9. 岗位匹配（match）
 

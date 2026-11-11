@@ -1,5 +1,6 @@
 package com.team.resume.ai;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
+import com.team.resume.ai.dto.JobRequirementsResult;
 import com.team.resume.ai.dto.ResumeGenerationResult;
 import com.team.resume.ai.dto.ResumeGenerationResult.Highlight;
 import com.team.resume.common.BusinessException;
@@ -81,6 +83,43 @@ public class AIResponseParser {
                 selfEvaluation,
                 readHighlights(root, "experienceHighlights"),
                 readHighlights(root, "projectHighlights"));
+    }
+
+    /**
+     * JD 解析：只做结构与类型校验，不补全事实。
+     * requirements 为空视为 AI 没有完成解析，返回 502，避免写入空技能要求。
+     */
+    public JobRequirementsResult parseJobRequirements(String content) {
+        JsonNode root = readJson(content);
+        String position = root.path("position").asText("").trim();
+
+        List<JobRequirementsResult.Requirement> requirements = new ArrayList<>();
+        JsonNode node = root.get("requirements");
+        if (node != null && node.isArray()) {
+            node.forEach(item -> {
+                String skill = item.path("skill").asText("").trim();
+                if (skill.isEmpty()) {
+                    return;
+                }
+                String importance = item.path("importance").asText("").trim();
+                BigDecimal weight = null;
+                JsonNode weightNode = item.get("weight");
+                if (weightNode != null && weightNode.isNumber()) {
+                    weight = weightNode.decimalValue();
+                } else if (weightNode != null && weightNode.isTextual()) {
+                    try {
+                        weight = new BigDecimal(weightNode.asText().trim());
+                    } catch (NumberFormatException ignored) {
+                        // 非数字权重交给归一化规则按 0 处理
+                    }
+                }
+                requirements.add(new JobRequirementsResult.Requirement(skill, importance, weight));
+            });
+        }
+        if (requirements.isEmpty()) {
+            throw new BusinessException(502, "AI 未解析出岗位技能要求，请稍后重试");
+        }
+        return new JobRequirementsResult(position, requirements);
     }
 
     private static List<Highlight> readHighlights(JsonNode parent, String field) {
