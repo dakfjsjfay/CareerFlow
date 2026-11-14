@@ -799,3 +799,45 @@ JD 解析请求：
 - 不支持的文件类型 / 空文件 / 超过大小限制 → 400
 - AI 失败 → 502，不产生任何档案数据
 - 上传内容按不可信数据处理，提示词中要求模型忽略文档内的指令
+
+## 16. 反馈分析（analytics，P1）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/analytics/feedback | GET | 投递漏斗 + 简历版本效果 + 偏好反馈分布 |
+
+返回：
+
+```json
+{
+  "code": 200, "message": "success",
+  "data": {
+    "summary": {
+      "totalApplications": 3, "readCount": 2, "interviewCount": 2, "offerCount": 1,
+      "feedbackCount": 3, "readRate": 0.6667, "interviewRate": 0.6667, "offerRate": 0.3333
+    },
+    "funnel": [
+      { "stage": "APPLIED", "label": "已投递", "count": 3, "rate": 1.0 },
+      { "stage": "READ", "label": "已读", "count": 2, "rate": 0.6667 },
+      { "stage": "INTERVIEW", "label": "面试", "count": 2, "rate": 0.6667 },
+      { "stage": "OFFER", "label": "录用", "count": 1, "rate": 0.3333 }
+    ],
+    "versionEffects": [
+      {
+        "resumeVersionId": 2, "versionNumber": 2,
+        "applicationCount": 2, "readCount": 2, "interviewCount": 2, "offerCount": 1,
+        "readRate": 1.0, "interviewRate": 1.0, "offerRate": 0.5
+      }
+    ],
+    "feedbackDistribution": [
+      { "feedbackType": "NOT_INTERESTED", "label": "不感兴趣", "count": 2, "rate": 0.6667 }
+    ]
+  }
+}
+```
+
+规则：
+
+- 漏斗与版本效果按 `application_history` 中**到达过的最高阶段**累计，被拒绝的记录仍计入此前的已读/面试阶段
+- 所有 rate 为 0~1 小数，前端负责格式化为百分比
+- 反馈分布固定返回四种偏好类型（无数据时 count=0），统计数据严格按当前用户隔离
