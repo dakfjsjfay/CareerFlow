@@ -1,0 +1,84 @@
+[
+  {
+    "name": "保留用户提供的量化结果",
+    "source": "{\"description\":\"负责订单系统优化\"}",
+    "userText": "将接口响应时间从 800ms 优化到 300ms",
+    "after": {
+      "star": {
+        "situation": "订单系统流量增长",
+        "task": "性能优化",
+        "action": "引入缓存",
+        "result": "响应时间从 800ms 降到 300ms"
+      }
+    },
+    "expect": {
+      "resultContains": "300ms",
+      "hasWarnings": false
+    }
+  },
+  {
+    "name": "删除编造的量化指标",
+    "source": "负责订单系统优化",
+    "userText": "负责订单系统优化",
+    "after": {
+      "star": {
+        "situation": "订单系统",
+        "task": "优化",
+        "action": "引入缓存",
+        "result": "性能提升 300%"
+      }
+    },
+    "expect": {
+      "resultNotContains": "300%",
+      "hasWarnings": true
+    }
+  },
+  {
+    "name": "回退用户未提供的公司并移除新增字段",
+    "source": {
+      "id": "e1",
+      "company": "旧公司",
+      "position": "后端开发"
+    },
+    "userText": "旧公司 后端开发",
+    "after": {
+      "id": "e1",
+      "company": "某大厂",
+      "position": "后端开发",
+      "description": "负责核心交易链路"
+    },
+    "expect": {
+      "companyEquals": "旧公司",
+      "descriptionAbsent": true,
+      "hasWarnings": true
+    }
+  },
+  {
+    "name": "移除用户未提供的技能",
+    "source": {
+      "skills": ["Java", "MySQL"]
+    },
+    "userText": "Java MySQL",
+    "after": {
+      "skills": ["Java", "Kafka"]
+    },
+    "expect": {
+      "skillsEqual": ["Java"],
+      "hasWarnings": true
+    }
+  },
+  {
+    "name": "允许不新增事实的专业润色",
+    "source": {
+      "description": "负责用户模块开发"
+    },
+    "userText": "负责用户模块开发",
+    "after": {
+      "description": "主导用户模块的设计与开发，保证交付质量"
+    },
+    "expect": {
+      "descriptionContains": "用户模块",
+      "hasWarnings": false
+    }
+  }
+]

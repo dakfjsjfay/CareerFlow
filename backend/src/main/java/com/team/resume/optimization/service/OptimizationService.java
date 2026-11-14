@@ -56,8 +56,8 @@ import com.team.resume.resume.vo.ResumeGenerateResultVO;
  * → 触发简历重新生成（generationReason=OPTIMIZATION，永不覆盖旧版本）
  * → 回到匹配页重新分析即可看到分数变化。
  * <p>
- * 归属校验：任务经 chat_session_id → chat_session.user_id，同时校验任务内
- * resume_version 归属（database.md §8）。
+ * 归属校验：优先 user_id 直接判定；存量任务 user_id 为空时回退
+ * chat_session_id → chat_session.user_id（database.md §8）。
  */
 @Service
 public class OptimizationService {
@@ -131,6 +131,7 @@ public class OptimizationService {
 
         LocalDateTime now = LocalDateTime.now();
         OptimizationTask task = new OptimizationTask();
+        task.setUserId(userId);
         task.setJobId(job.getId());
         task.setResumeVersionId(request.getResumeVersionId());
         task.setChatSessionId(sessionId);
@@ -299,6 +300,13 @@ public class OptimizationService {
         OptimizationTask task = taskMapper.selectById(taskId);
         if (task == null) {
             throw new BusinessException(404, "优化任务不存在");
+        }
+        // 新任务直接按 user_id 判定；存量任务为空时回退对话会话归属
+        if (task.getUserId() != null) {
+            if (!Objects.equals(task.getUserId(), userId)) {
+                throw new BusinessException(403, "无权访问该任务");
+            }
+            return task;
         }
         if (task.getChatSessionId() == null) {
             throw new BusinessException(403, "无权访问该任务");

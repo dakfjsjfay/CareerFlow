@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -79,6 +80,13 @@ public class ResumeController {
         return Result.ok(resumeService.listVersions(userId, id));
     }
 
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@AuthenticationPrincipal Long userId,
+                               @PathVariable("id") Long id) {
+        resumeService.delete(userId, id);
+        return Result.ok(null);
+    }
+
     @GetMapping("/{id}/versions/{versionId}")
     public Result<ResumeVersionVO> version(@AuthenticationPrincipal Long userId,
                                            @PathVariable("id") Long id,
@@ -90,10 +98,13 @@ public class ResumeController {
     public ResponseEntity<byte[]> export(@AuthenticationPrincipal Long userId,
                                          @PathVariable("id") Long id,
                                          @RequestBody ExportResumeRequest request) {
-        ExportFile file = resumeService.exportDocx(userId, id, request);
+        ExportFile file = resumeService.export(userId, id, request);
+        boolean pdf = file.filename().toLowerCase().endsWith(".pdf");
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .contentType(pdf
+                        ? MediaType.APPLICATION_PDF
+                        : MediaType.parseMediaType(
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(file.filename(), StandardCharsets.UTF_8)
                         .build()

@@ -1,364 +1,412 @@
-<template>
-  <div v-loading="loading" class="resume-page">
-    <div v-if="resumes.length === 0" class="empty-state">
-      <h2>还没有简历</h2>
-      <p>从已确认的个人档案生成第一份结构化简历，之后可以随时切换模板、编辑内容、导出 PDF / DOCX。</p>
-      <el-button type="primary" data-testid="create-resume" @click="handleCreate">
-        创建我的第一份简历
-      </el-button>
-    </div>
-
-    <template v-else-if="active">
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <span class="resume-name">{{ active.resumeName }}</span>
-          <el-select
-            v-if="versions.length > 0"
-            :model-value="activeVersion?.versionId ?? undefined"
-            size="small"
-            class="version-select"
-            @change="onVersionChange"
-          >
-            <el-option
-              v-for="version in versions"
-              :key="version.versionId"
-              :label="`v${version.versionNumber} · ${reasonLabel(version.generationReason)}`"
-              :value="version.versionId"
-            />
-          </el-select>
-        </div>
-        <div class="toolbar-actions">
-          <el-button size="small" data-testid="open-templates" @click="openSwitch">
-            模板库
-          </el-button>
-          <el-button size="small" data-testid="open-history" @click="historyVisible = true">
-            版本历史
-          </el-button>
-          <el-button
-            size="small"
-            type="primary"
-            data-testid="ai-generate"
-            :loading="generating"
-            @click="openGenerate"
-          >
-            AI 生成
-          </el-button>
-          <el-button
-            size="small"
-            data-testid="save-version"
-            :loading="saving"
-            :disabled="!editingContent"
-            @click="handleSave"
-          >
-            保存新版本
-          </el-button>
-          <el-button
-            size="small"
-            data-testid="export-pdf"
-            :disabled="!activeVersion"
-            @click="handleExportPdf"
-          >
-            导出 PDF
-          </el-button>
-          <el-button
-            size="small"
-            data-testid="export-docx"
-            :disabled="!activeVersion"
-            @click="handleExportDocx()"
-          >
-            导出 DOCX
-          </el-button>
-        </div>
-      </div>
-
-      <div v-if="!activeVersion || !editingContent" class="empty-version">
-        <h3>还没有生成简历版本</h3>
-        <p>选择一套模板，AI 会根据已确认档案生成第一版。</p>
-        <el-button type="primary" data-testid="first-generate" @click="openGenerate">
-          选择模板并生成
-        </el-button>
-      </div>
-
-      <div v-else class="workspace">
-        <div class="editor-pane">
-          <ResumeEditor :content="editingContent" />
-        </div>
-        <div class="preview-pane">
-          <div id="resume-print-area" class="preview-canvas">
-            <ResumeTemplateRenderer
-              v-if="previewTemplate"
-              :template="previewTemplate"
-              :content="editingContent"
-              :resume-name="active.resumeName"
-            />
-            <el-empty v-else description="模板加载失败，请重新选择模板" />
-          </div>
-        </div>
-      </div>
-
-      <TemplateGalleryDialog
-        v-model="galleryVisible"
-        :mode="galleryMode"
-        :target-position="targetPosition"
-        :current-template-id="activeTemplateId"
-        @confirm="handleConfirmTemplate"
-      />
-      <VersionHistoryDrawer
-        v-model="historyVisible"
-        :versions="versions"
-        :active-version-id="activeVersion?.versionId ?? null"
-        @select="handleSelectVersion"
-        @export="handleExportDocx"
-      />
-    </template>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Clock, CopyDocument, Delete, Document, Edit } from '@element-plus/icons-vue'
 
-import ResumeEditor from '@/components/resume/ResumeEditor.vue'
-import TemplateGalleryDialog from '@/components/resume/TemplateGalleryDialog.vue'
-import VersionHistoryDrawer from '@/components/resume/VersionHistoryDrawer.vue'
+import {
+  createResume,
+  deleteResume,
+  exportResumeDocx,
+  getResume,
+  listResumeVersions,
+  listResumes,
+  saveResumeVersion,
+  type ResumeSummary,
+  type ResumeVersionSummary,
+} from '@/api/resume'
 import { loadTemplateById } from '@/components/resume-template/loadTemplate'
-import ResumeTemplateRenderer from '@/components/resume-template/ResumeTemplateRenderer.vue'
-import { useResume } from '@/composables/useResume'
-import { printResume } from '@/utils/exportPdf'
+import VersionHistoryDrawer from '@/components/resume/VersionHistoryDrawer.vue'
+import { downloadBlob } from '@/composables/useResume'
+import { DEFAULT_TEMPLATE_ID } from '@/utils/resumeWizard'
 
-import './print.css'
+/**
+ * 简历中心：只做列表与入口管理，具体编辑统一进入左右分屏工作区。
+ */
+const router = useRouter()
 
-const {
-  resumes,
-  active,
-  versions,
-  activeVersion,
-  editingContent,
-  loading,
-  generating,
-  saving,
-  loadResumes,
-  create,
-  selectVersion,
-  generate,
-  saveVersion,
-  exportDocx,
-} = useResume()
+const resumes = ref<ResumeSummary[]>([])
+const loading = ref(false)
+const busyId = ref<number | null>(null)
 
-const galleryVisible = ref(false)
-const galleryMode = ref<'generate' | 'switch'>('generate')
 const historyVisible = ref(false)
+const historyResumeId = ref<number | null>(null)
+const historyVersions = ref<ResumeVersionSummary[]>([])
+const historyActiveId = ref<number | null>(null)
 
-const activeTemplateId = computed(
-  () => activeVersion.value?.templateId ?? editingContent.value?.meta?.templateId ?? null,
-)
-const previewTemplate = computed(() => loadTemplateById(activeTemplateId.value))
-const targetPosition = computed(
-  () => editingContent.value?.jobIntention.targetPosition ?? null,
-)
-
-const REASON_LABELS: Record<string, string> = {
-  INITIAL: '首次生成',
-  JOB_TARGETED: '按岗位生成',
-  OPTIMIZATION: '反向优化',
-  REGENERATE: '重新生成',
-  MANUAL_EDIT: '手动编辑',
-  TEMPLATE_SWITCH: '切换模板',
-  RESTORE: '恢复旧版本',
-}
-
-function reasonLabel(reason: string): string {
-  return REASON_LABELS[reason] ?? reason
-}
-
-function onVersionChange(value: unknown): void {
-  void handleSelectVersion(Number(value))
-}
+const isEmpty = computed(() => !loading.value && resumes.value.length === 0)
 
 function errorMessage(error: unknown, fallback: string): string {
-  const err = error as { response?: { data?: { message?: string } } }
-  return err.response?.data?.message || (error instanceof Error ? error.message : '') || fallback
+  const err = error as { response?: { status?: number; data?: { message?: string } } }
+  if (err?.response?.status === 409) {
+    return err.response.data?.message || '该简历已被投递记录引用，无法删除'
+  }
+  return err?.response?.data?.message || (error instanceof Error ? error.message : '') || fallback
 }
 
-async function loadPage(): Promise<void> {
+function templateName(templateId: string | null): string {
+  if (!templateId) {
+    return '未选择模板'
+  }
+  return loadTemplateById(templateId)?.name ?? '自定义模板'
+}
+
+function formatTime(value: string | null): string {
+  if (!value) {
+    return '—'
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  const diff = Date.now() - date.getTime()
+  const minute = 60 * 1000
+  if (diff < minute) {
+    return '刚刚'
+  }
+  if (diff < 60 * minute) {
+    return `${Math.floor(diff / minute)} 分钟前`
+  }
+  if (diff < 24 * 60 * minute) {
+    return `${Math.floor(diff / (60 * minute))} 小时前`
+  }
+  return date.toLocaleDateString('zh-CN')
+}
+
+async function load(): Promise<void> {
+  loading.value = true
   try {
-    await loadResumes()
+    resumes.value = (await listResumes()).data
   } catch (error) {
     ElMessage.error(errorMessage(error, '简历加载失败，请稍后重试'))
+  } finally {
+    loading.value = false
   }
 }
 
-async function handleCreate(): Promise<void> {
+function goCreate(): void {
+  void router.push('/workspace/new')
+}
+
+function goEdit(resume: ResumeSummary): void {
+  void router.push(`/workspace/${resume.id}`)
+}
+
+async function handleDelete(resume: ResumeSummary): Promise<void> {
   try {
-    await create('我的简历')
-    ElMessage.success('简历已创建，请选择模板生成第一版')
-  } catch (error) {
-    ElMessage.error(errorMessage(error, '创建简历失败'))
-  }
-}
-
-function openGenerate(): void {
-  galleryMode.value = 'generate'
-  galleryVisible.value = true
-}
-
-function openSwitch(): void {
-  galleryMode.value = 'switch'
-  galleryVisible.value = true
-}
-
-async function handleConfirmTemplate(templateId: string): Promise<void> {
-  try {
-    if (galleryMode.value === 'generate') {
-      await generate(templateId, 'INITIAL')
-      ElMessage.success('已生成新版本')
-    } else {
-      await saveVersion('TEMPLATE_SWITCH', templateId)
-      ElMessage.success('已应用新模板，旧版本保持不变')
-    }
-  } catch (error) {
-    ElMessage.error(
-      errorMessage(error, galleryMode.value === 'generate' ? '生成失败' : '切换模板失败'),
+    await ElMessageBox.confirm(
+      `删除后该简历及其全部版本都无法恢复，确定删除「${resume.resumeName}」吗？`,
+      '删除简历',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
     )
+  } catch {
+    return
+  }
+  busyId.value = resume.id
+  try {
+    await deleteResume(resume.id)
+    ElMessage.success('简历已删除')
+    await load()
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '删除失败'))
+  } finally {
+    busyId.value = null
   }
 }
 
-async function handleSave(): Promise<void> {
+async function handleCopy(resume: ResumeSummary): Promise<void> {
+  busyId.value = resume.id
   try {
-    await saveVersion('MANUAL_EDIT')
-    ElMessage.success('已保存为新版本')
+    const detail = (await getResume(resume.id)).data
+    if (!detail.currentVersion) {
+      ElMessage.warning('该简历还没有生成版本，暂不支持复制')
+      return
+    }
+    const created = (
+      await createResume({ resumeName: `${resume.resumeName} 副本` })
+    ).data
+    await saveResumeVersion(created.id, {
+      content: detail.currentVersion.content,
+      templateId: detail.currentVersion.templateId || DEFAULT_TEMPLATE_ID,
+      generationReason: 'MANUAL_EDIT',
+    })
+    ElMessage.success('已复制为新简历，历史版本不会被修改')
+    await load()
   } catch (error) {
-    ElMessage.error(errorMessage(error, '保存失败'))
+    ElMessage.error(errorMessage(error, '复制失败'))
+  } finally {
+    busyId.value = null
   }
 }
 
-async function handleSelectVersion(versionId: number): Promise<void> {
+async function openHistory(resume: ResumeSummary): Promise<void> {
+  historyResumeId.value = resume.id
+  historyActiveId.value = resume.currentVersionId
+  historyVisible.value = true
   try {
-    await selectVersion(versionId)
+    historyVersions.value = (await listResumeVersions(resume.id)).data
   } catch (error) {
+    historyVersions.value = []
     ElMessage.error(errorMessage(error, '版本加载失败'))
   }
 }
 
-async function handleExportDocx(versionId?: number): Promise<void> {
-  const target = versionId ?? activeVersion.value?.versionId
-  if (!target) {
+function handleVersionSelect(versionId: number): void {
+  historyVisible.value = false
+  if (historyResumeId.value == null) {
+    return
+  }
+  void router.push({
+    path: `/workspace/${historyResumeId.value}`,
+    query: { versionId: String(versionId) },
+  })
+}
+
+async function handleVersionExport(versionId: number): Promise<void> {
+  if (historyResumeId.value == null) {
     return
   }
   try {
-    await exportDocx(target)
+    const result = await exportResumeDocx(historyResumeId.value, versionId)
+    downloadBlob(result.blob, result.filename)
   } catch (error) {
     ElMessage.error(errorMessage(error, 'DOCX 导出失败'))
   }
 }
 
-function handleExportPdf(): void {
-  if (!active.value || !activeVersion.value) {
-    return
-  }
-  printResume(`${active.value.resumeName}-v${activeVersion.value.versionNumber}`)
-}
-
-onMounted(loadPage)
+onMounted(load)
 </script>
 
+<template>
+  <div v-loading="loading" class="resume-center">
+    <header class="center-head">
+      <div>
+        <h1>简历中心</h1>
+        <p>所有简历都按版本独立保存，编辑与生成统一在左右分屏工作区完成。</p>
+      </div>
+      <el-button type="primary" data-testid="create-resume" @click="goCreate">
+        <el-icon><Document /></el-icon>
+        <span>新建简历</span>
+      </el-button>
+    </header>
+
+    <div v-if="isEmpty" class="empty-state">
+      <el-icon class="empty-state__icon"><Document /></el-icon>
+      <h2>还没有简历</h2>
+      <p>进入简历工作区，通过左侧 AI 引导补全信息，右侧实时生成可导出的简历。</p>
+      <el-button type="primary" @click="goCreate">创建我的第一份简历</el-button>
+    </div>
+
+    <div v-else class="resume-grid">
+      <article v-for="resume in resumes" :key="resume.id" class="resume-card">
+        <div class="resume-card__head">
+          <h3 class="resume-card__name" :title="resume.resumeName">{{ resume.resumeName }}</h3>
+          <el-tag v-if="resume.currentVersionNumber" size="small" effect="plain">
+            v{{ resume.currentVersionNumber }}
+          </el-tag>
+          <el-tag v-else size="small" type="info" effect="plain">草稿中</el-tag>
+        </div>
+
+        <dl class="resume-card__meta">
+          <div>
+            <dt>模板</dt>
+            <dd>{{ templateName(resume.templateId) }}</dd>
+          </div>
+          <div>
+            <dt>最近更新</dt>
+            <dd>{{ formatTime(resume.updatedAt) }}</dd>
+          </div>
+        </dl>
+
+        <div class="resume-card__actions">
+          <el-button
+            type="primary"
+            plain
+            size="small"
+            data-testid="resume-edit"
+            @click="goEdit(resume)"
+          >
+            <el-icon><Edit /></el-icon>
+            <span>编辑简历</span>
+          </el-button>
+          <el-button size="small" data-testid="resume-history" @click="openHistory(resume)">
+            <el-icon><Clock /></el-icon>
+            <span>版本历史</span>
+          </el-button>
+          <el-tooltip content="基于当前版本复制一份新简历" placement="top">
+            <el-button
+              size="small"
+              data-testid="resume-copy"
+              :loading="busyId === resume.id"
+              @click="handleCopy(resume)"
+            >
+              <el-icon><CopyDocument /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="删除简历及全部版本" placement="top">
+            <el-button
+              size="small"
+              type="danger"
+              plain
+              data-testid="resume-delete"
+              :loading="busyId === resume.id"
+              @click="handleDelete(resume)"
+            >
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </el-tooltip>
+        </div>
+      </article>
+    </div>
+
+    <VersionHistoryDrawer
+      v-model="historyVisible"
+      :versions="historyVersions"
+      :active-version-id="historyActiveId"
+      @select="handleVersionSelect"
+      @export="handleVersionExport"
+    />
+  </div>
+</template>
+
 <style scoped>
-.resume-page {
+.resume-center {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cf-space-5);
   min-height: 100%;
 }
 
-.empty-state,
-.empty-version {
+.center-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cf-space-4);
+}
+
+.center-head h1 {
+  margin: 0;
+  font-size: var(--cf-font-2xl);
+  color: var(--cf-text);
+}
+
+.center-head p {
+  margin: var(--cf-space-1) 0 0;
+  font-size: var(--cf-font-sm);
+  color: var(--cf-text-secondary);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cf-space-2);
+  padding: 72px var(--cf-space-5);
   background: var(--cf-card-bg);
   border: 1px solid var(--cf-border);
-  border-radius: 12px;
-  padding: 64px 24px;
+  border-radius: var(--cf-radius-lg);
   text-align: center;
 }
 
-.empty-state h2,
-.empty-version h3 {
-  margin-bottom: 10px;
+.empty-state__icon {
+  font-size: 40px;
+  color: var(--cf-border-strong);
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-size: var(--cf-font-lg);
   color: var(--cf-text);
 }
 
-.empty-state p,
-.empty-version p {
+.empty-state p {
+  margin: 0 0 var(--cf-space-2);
+  max-width: 460px;
+  font-size: var(--cf-font-sm);
   color: var(--cf-text-secondary);
-  font-size: 14px;
-  margin-bottom: 20px;
+  line-height: 1.7;
 }
 
-.toolbar {
+.resume-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--cf-space-4);
+}
+
+.resume-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 16px;
+  flex-direction: column;
+  gap: var(--cf-space-3);
+  padding: var(--cf-space-4);
   background: var(--cf-card-bg);
   border: 1px solid var(--cf-border);
-  border-radius: 10px;
-  margin-bottom: 16px;
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  border-radius: var(--cf-radius-lg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.toolbar-left,
-.toolbar-actions {
+.resume-card:hover {
+  border-color: var(--cf-primary-light);
+  box-shadow: var(--cf-shadow-sm);
+}
+
+.resume-card__head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: var(--cf-space-2);
 }
 
-.resume-name {
-  font-size: 16px;
+.resume-card__name {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--cf-font-md);
   font-weight: 600;
   color: var(--cf-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.version-select {
-  width: 190px;
+.resume-card__meta {
+  display: flex;
+  gap: var(--cf-space-5);
+  margin: 0;
 }
 
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 880px;
-  gap: 16px;
-  align-items: start;
-}
-
-.editor-pane {
+.resume-card__meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
-.preview-pane {
-  position: sticky;
-  top: 76px;
-  max-height: calc(100vh - 96px);
-  overflow: auto;
-  background: #eef2f7;
-  border: 1px solid var(--cf-border);
-  border-radius: 10px;
-  padding: 16px;
+.resume-card__meta dt {
+  font-size: var(--cf-font-xs);
+  color: var(--cf-text-tertiary);
 }
 
-.preview-canvas {
-  width: 820px;
-  margin: 0 auto;
-  background: #fff;
-  box-shadow: 0 18px 40px rgb(15 23 42 / 12%);
+.resume-card__meta dd {
+  margin: 0;
+  font-size: var(--cf-font-sm);
+  color: var(--cf-text-secondary);
 }
 
-@media (max-width: 1500px) {
-  .workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.resume-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-space-2);
+  padding-top: var(--cf-space-3);
+  border-top: 1px solid var(--cf-border);
+}
 
-  .preview-pane {
-    position: static;
-    max-height: none;
+.resume-card__actions .el-button:first-child {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .center-head {
+    flex-direction: column;
   }
 }
 </style>

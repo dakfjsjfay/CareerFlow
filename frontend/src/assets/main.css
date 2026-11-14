@@ -1,13 +1,69 @@
-/* CareerFlow-AI 蓝白色 SaaS 设计变量 */
+/* CareerFlow-AI 设计令牌（docs/2.0/ui-redesign.md §6.1） */
 :root {
+  /* 主色 */
   --cf-primary: #2563eb;
   --cf-primary-light: #3b82f6;
   --cf-primary-dark: #1d4ed8;
+  --cf-primary-soft: #eff6ff;
   --cf-bg: #f5f7fb;
   --cf-text: #1f2937;
   --cf-text-secondary: #6b7280;
+  --cf-text-tertiary: #9ca3af;
   --cf-card-bg: #ffffff;
   --cf-border: #e5e7eb;
+  --cf-border-strong: #d1d5db;
+
+  /* 状态色 */
+  --cf-success: #16a34a;
+  --cf-success-soft: #ecfdf5;
+  --cf-warning: #d97706;
+  --cf-warning-soft: #fffbeb;
+  --cf-danger: #dc2626;
+  --cf-danger-soft: #fef2f2;
+  --cf-info: #0891b2;
+  --cf-info-soft: #ecfeff;
+
+  /* 字号 */
+  --cf-font-xs: 12px;
+  --cf-font-sm: 13px;
+  --cf-font-base: 14px;
+  --cf-font-lg: 16px;
+  --cf-font-xl: 20px;
+  --cf-font-2xl: 24px;
+  --cf-font-3xl: 30px;
+
+  /* 间距 */
+  --cf-space-1: 4px;
+  --cf-space-2: 8px;
+  --cf-space-3: 12px;
+  --cf-space-4: 16px;
+  --cf-space-5: 24px;
+  --cf-space-6: 32px;
+  --cf-space-7: 48px;
+
+  /* 圆角 */
+  --cf-radius-sm: 6px;
+  --cf-radius-md: 10px;
+  --cf-radius-lg: 16px;
+
+  /* 阴影 */
+  --cf-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --cf-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --cf-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* 布局 */
+  --cf-sidebar-width: 232px;
+  --cf-sidebar-collapsed-width: 64px;
+  --cf-header-height: 60px;
+  --cf-content-max: 1440px;
+
+  /* Element Plus 主色对齐 */
+  --el-color-primary: var(--cf-primary);
+  --el-color-primary-light-3: var(--cf-primary-light);
+  --el-color-primary-dark-2: var(--cf-primary-dark);
+  --el-border-radius-base: var(--cf-radius-sm);
+  --el-text-color-primary: var(--cf-text);
+  --el-text-color-regular: var(--cf-text-secondary);
 }
 
 * {
@@ -20,10 +76,64 @@ body {
   font-family: 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background: var(--cf-bg);
   color: var(--cf-text);
+  font-size: var(--cf-font-base);
   -webkit-font-smoothing: antialiased;
 }
 
 a {
   text-decoration: none;
   color: inherit;
+}
+
+/* 通用页面容器 */
+.cf-page {
+  width: 100%;
+  max-width: var(--cf-content-max);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cf-space-4);
+}
+
+.cf-card {
+  background: var(--cf-card-bg);
+  border: 1px solid var(--cf-border);
+  border-radius: var(--cf-radius-lg);
+  box-shadow: var(--cf-shadow-sm);
+  padding: var(--cf-space-5);
+}
+
+.cf-card--flat {
+  box-shadow: none;
+}
+
+.cf-section-title {
+  font-size: var(--cf-font-lg);
+  font-weight: 600;
+  color: var(--cf-text);
+}
+
+.cf-muted {
+  color: var(--cf-text-secondary);
+  font-size: var(--cf-font-sm);
+}
+
+.cf-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-space-3);
+}
+
+.cf-spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cf-space-3);
+}
+
+@media (max-width: 1023px) {
+  .cf-card {
+    padding: var(--cf-space-4);
+    border-radius: var(--cf-radius-md);
+  }
 }

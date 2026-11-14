@@ -29,9 +29,10 @@ import com.team.resume.job.vo.JobSummaryVO;
 /**
  * 岗位业务（docs/api.md §8）：
  * - 列表分页筛选（keyword 匹配岗位/公司、city 精确、salary 模糊）
- * - 详情含技能要求
- * - 手动新增岗位（sourceType=MANUAL）
- * - AI 解析 JD：解析结果覆盖该岗位的 job_requirement（重复解析以最新为准）
+ * - 可见性：普通用户只看公共岗位与自己创建的私有岗位，管理员看全部
+ * - 详情含技能要求与 canEdit
+ * - 新增岗位：普通用户创建私有岗位，管理员创建公共岗位
+ * - AI 解析 JD：仅管理员或岗位创建者可写 job_requirement（重复解析以最新为准）
  */
 @Service
 public class JobService {
@@ -50,11 +51,17 @@ public class JobService {
     }
 
     public PageResult<JobSummaryVO> list(long page, long size, String keyword,
-                                         String city, String salary) {
+                                         String city, String salary,
+                                         long userId, boolean admin) {
         long safePage = Math.max(page, 1);
         long safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 
         LambdaQueryWrapper<Job> wrapper = new LambdaQueryWrapper<>();
+        if (!admin) {
+            // 非管理员：公共岗位 + 自己创建的私有岗位
+            wrapper.and(w -> w.eq(Job::getVisibility, Job.VISIBILITY_PUBLIC)
+                    .or().eq(Job::getCreatedBy, userId));
+        }
         if (keyword != null && !keyword.isBlank()) {
             String kw = keyword.trim();
             wrapper.and(w -> w.like(Job::getPosition, kw).or().like(Job::getCompany, kw));
@@ -83,13 +90,15 @@ public class JobService {
         return new PageResult<>(items, result.getTotal(), safePage, safeSize);
     }
 
-    public JobDetailVO detail(Long jobId) {
-        Job job = requireJob(jobId);
+    public JobDetailVO detail(Long jobId, long userId, boolean admin) {
+        Job job = requireReadable(jobId, userId, admin);
         List<JobRequirement> requirements = listRequirements(jobId);
-        return toDetail(job, requirements);
+        JobDetailVO vo = toDetail(job, requirements);
+        vo.setCanEdit(canEdit(job, userId, admin));
+        return vo;
     }
 
-    public JobSummaryVO create(CreateJobRequest request) {
+    public JobSummaryVO create(CreateJobRequest request, long userId, boolean admin) {
         Job job = new Job();
         job.setCompany(trimToNull(request.getCompany()));
         job.setPosition(request.getPosition().trim());
@@ -98,6 +107,9 @@ public class JobService {
         job.setJdContent(trimToNull(request.getJdContent()));
         job.setExternalUrl(trimToNull(request.getExternalUrl()));
         job.setSourceType("MANUAL");
+        // 管理员录入的是公共岗位；普通用户录入的只对自己可见
+        job.setCreatedBy(userId);
+        job.setVisibility(admin ? Job.VISIBILITY_PUBLIC : Job.VISIBILITY_PRIVATE);
         job.setCreatedAt(LocalDateTime.now());
         job.setUpdatedAt(LocalDateTime.now());
         jobMapper.insert(job);
@@ -105,8 +117,8 @@ public class JobService {
     }
 
     @Transactional
-    public JobParseVO parse(Long jobId, ParseJdRequest request) {
-        Job job = requireJob(jobId);
+    public JobParseVO parse(Long jobId, ParseJdRequest request, long userId, boolean admin) {
+        Job job = requireWritable(jobId, userId, admin);
 
         String jd = request.getJdContent() == null || request.getJdContent().isBlank()
                 ? job.getJdContent()
@@ -198,6 +210,37 @@ public class JobService {
             throw new BusinessException(404, "岗位不存在");
         }
         return job;
+    }
+
+    /** 读权限：管理员、公共岗位、自己的私有岗位；他人私有岗位按不存在处理，不暴露存在性 */
+    private Job requireReadable(Long jobId, long userId, boolean admin) {
+        Job job = requireJob(jobId);
+        if (admin || isPublic(job) || isOwner(job, userId)) {
+            return job;
+        }
+        throw new BusinessException(404, "岗位不存在");
+    }
+
+    /** 写权限：仅管理员或岗位创建者 */
+    private Job requireWritable(Long jobId, long userId, boolean admin) {
+        Job job = requireReadable(jobId, userId, admin);
+        if (!canEdit(job, userId, admin)) {
+            throw new BusinessException(403, "无权修改该岗位");
+        }
+        return job;
+    }
+
+    private static boolean canEdit(Job job, long userId, boolean admin) {
+        return admin || isOwner(job, userId);
+    }
+
+    private static boolean isOwner(Job job, long userId) {
+        return job.getCreatedBy() != null && job.getCreatedBy() == userId;
+    }
+
+    private static boolean isPublic(Job job) {
+        // 存量数据未写入 visibility 时按公共岗位处理，保证升级后旧数据可读
+        return job.getVisibility() == null || Job.VISIBILITY_PUBLIC.equals(job.getVisibility());
     }
 
     private static String trimToNull(String value) {

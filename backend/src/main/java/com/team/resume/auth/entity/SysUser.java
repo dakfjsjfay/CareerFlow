@@ -16,12 +16,18 @@ import lombok.Data;
 @TableName("sys_user")
 public class SysUser {
 
+    public static final String ROLE_USER = "USER";
+    public static final String ROLE_ADMIN = "ADMIN";
+
     @TableId(type = IdType.AUTO)
     private Long id;
 
     private String username;
 
     private String passwordHash;
+
+    /** 角色：USER / ADMIN（2.0 起用于管理端与岗位写权限判定） */
+    private String role;
 
     private String email;
 

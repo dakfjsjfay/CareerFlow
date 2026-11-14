@@ -22,6 +22,10 @@ public class PromptTemplate {
     private final String optimizationReplyPrompt;
     private final String optimizationExtractPrompt;
     private final String matchAdvicePrompt;
+    private final String sectionAnalyzePrompt;
+    private final String sectionRewritePrompt;
+    private final String sectionChatPrompt;
+    private final String starStructurePrompt;
 
     public PromptTemplate() {
         this.chatExtractPrompt = read("prompts/chat-extract-prompt.txt");
@@ -32,6 +36,26 @@ public class PromptTemplate {
         this.optimizationReplyPrompt = read("prompts/optimization-reply-prompt.txt");
         this.optimizationExtractPrompt = read("prompts/optimization-extract-prompt.txt");
         this.matchAdvicePrompt = read("prompts/match-advice-prompt.txt");
+        this.sectionAnalyzePrompt = read("prompts/resume-section-analyze-prompt.txt");
+        this.sectionRewritePrompt = read("prompts/resume-section-rewrite-prompt.txt");
+        this.sectionChatPrompt = read("prompts/resume-section-chat-prompt.txt");
+        this.starStructurePrompt = read("prompts/resume-star-prompt.txt");
+    }
+
+    public String sectionAnalyzePrompt() {
+        return sectionAnalyzePrompt;
+    }
+
+    public String sectionRewritePrompt() {
+        return sectionRewritePrompt;
+    }
+
+    public String sectionChatPrompt() {
+        return sectionChatPrompt;
+    }
+
+    public String starStructurePrompt() {
+        return starStructurePrompt;
     }
 
     public String matchAdvicePrompt() {

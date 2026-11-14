@@ -53,6 +53,7 @@ erDiagram
 | id | BIGINT | PK 自增 | |
 | username | VARCHAR(50) | UNIQUE NOT NULL | 登录名 |
 | password_hash | VARCHAR(255) | NOT NULL | BCrypt 加密，**禁止存明文** |
+| role | VARCHAR(20) | NOT NULL DEFAULT 'USER' | ⭐ 2.0 新增：USER / ADMIN（管理端接口与岗位写权限判定） |
 | email | VARCHAR(100) | | 邮箱（MVP 不做验证码） |
 | created_at | DATETIME | NOT NULL | |
 
@@ -185,11 +186,14 @@ erDiagram
 |---|---|---|
 | id | BIGINT PK | |
 | company | VARCHAR(200) | 公司 |
+| company_id | BIGINT NULL | ⭐ 2.0 新增：关联 company；旧数据为空，company 文本保留兜底 |
 | position | VARCHAR(200) | 岗位名称 |
 | city | VARCHAR(100) | 工作城市 |
 | salary | VARCHAR(100) | 薪资（文本，如 "6k-10k"；精确数值过滤是已知限制，见 decision-record） |
 | jd_content | TEXT | 原始 JD 全文 |
 | source_type | VARCHAR(30) | MOCK（内置模拟）/ MANUAL（手动录入） |
+| created_by | BIGINT NULL | ⭐ 2.0 新增：创建者用户 ID；系统/种子数据为空 |
+| visibility | VARCHAR(20) | ⭐ 2.0 新增：PUBLIC / PRIVATE，默认 PUBLIC |
 | external_url | VARCHAR(500) | 外部招聘页面跳转链接（可空） |
 | created_at / updated_at | DATETIME | |
 
@@ -232,6 +236,7 @@ erDiagram
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | id | BIGINT PK | |
+| user_id | BIGINT NULL | ⭐ 2.0 新增：归属用户；存量数据按对话/简历回填 |
 | job_id | BIGINT | 目标岗位 |
 | resume_version_id | BIGINT | 当时的简历版本 |
 | chat_session_id | BIGINT | 追问复用对话页，关联会话 |
@@ -249,6 +254,8 @@ erDiagram
 | user_id | BIGINT NOT NULL, INDEX | 归属用户 |
 | job_id | BIGINT NOT NULL, INDEX | 关联岗位 |
 | resume_version_id | BIGINT NOT NULL, INDEX | 投递时使用的简历版本 |
+| channel | VARCHAR(30) NOT NULL DEFAULT 'MANUAL' | ⭐ 2.0 新增：MANUAL / OFFICIAL_SITE / JOB_BOARD / REFERRAL |
+| applied_url | VARCHAR(500) NULL | ⭐ 2.0 新增：实际投递页面链接 |
 | status | VARCHAR(30) NOT NULL | 见状态机 |
 | applied_at | DATETIME | 投递时间 |
 | next_follow_up_at | DATETIME NULL | ⭐ 新增：下次跟进提醒时间（NULL = 用默认规则 applied/updated+3 天） |
@@ -347,7 +354,7 @@ status ∈ {APPLIED, READ, INTERVIEW_INVITED, NO_RESPONSE}
 
 | 表 | 约束/索引 |
 |---|---|
-| sys_user | UNIQUE(username) |
+| sys_user | UNIQUE(username)；INDEX(role) |
 | user_profile | UNIQUE(user_id)；INDEX(user_id) |
 | profile_project | INDEX(profile_id) |
 | profile_experience | INDEX(profile_id) |
@@ -356,12 +363,12 @@ status ∈ {APPLIED, READ, INTERVIEW_INVITED, NO_RESPONSE}
 | chat_message | INDEX(session_id, created_at) |
 | resume | INDEX(user_id) |
 | resume_version | **UNIQUE(resume_id, version_number)**；INDEX(resume_id) |
-| job | INDEX(city)、INDEX(position) |
+| job | INDEX(city)、INDEX(position)、INDEX(company_id)、INDEX(created_by)、INDEX(visibility) |
 | job_requirement | INDEX(job_id) |
 | match_result | INDEX(resume_version_id)、INDEX(job_id) |
 | match_detail | INDEX(match_result_id) |
-| optimization_task | INDEX(chat_session_id)、INDEX(status) |
-| job_application | INDEX(user_id, status)、INDEX(next_follow_up_at) |
+| optimization_task | INDEX(chat_session_id)、INDEX(status)、INDEX(user_id) |
+| job_application | INDEX(user_id, status)、INDEX(next_follow_up_at)、INDEX(channel) |
 | application_history | INDEX(application_id, created_at) |
 | user_feedback | INDEX(user_id)、INDEX(job_id) |
 
@@ -374,12 +381,14 @@ status ∈ {APPLIED, READ, INTERVIEW_INVITED, NO_RESPONSE}
 | chat_session | user_id 校验 |
 | chat_message | 经 session_id → chat_session.user_id 校验 |
 | resume / resume_version | resume 经 user_id；version 经 resume_id → resume.user_id |
-| job / job_requirement | 公共资源，读不隔离；写仅管理员场景（MVP 不开放） |
+| job / job_requirement | 读：`visibility='PUBLIC' OR created_by=当前用户`（ADMIN 全量）；写：仅 ADMIN 或岗位创建者 |
 | match_result / match_detail | 经 resume_version_id → resume.user_id |
-| optimization_task | 经 chat_session_id → chat_session.user_id |
-| job_application | user_id 校验；resume_version/job 存在性校验 |
+| optimization_task | 优先 user_id 校验；历史数据 user_id 为空时回退 chat_session_id → chat_session.user_id |
+| `job_application` | user_id 校验；resume_version/job 存在性校验 |
 | application_history | 经 application_id → job_application.user_id |
 | user_feedback | user_id 校验 |
+| resume_draft | user_id 校验；resume_id 存在时经 resume.user_id 二次校验 |
+| resume_edit_history | user_id 校验；draft_id / resume_id 存在时同样校验归属 |
 
 **禁止仅凭前端传来的 ID 查询或修改任何数据。**
 
@@ -391,3 +400,80 @@ status ∈ {APPLIED, READ, INTERVIEW_INVITED, NO_RESPONSE}
 4. 投递记录与匹配结果必须关联具体的简历版本
 5. 用户原始经历与 AI 优化后的文案分开保存（原始在 profile_* 与 profile_evidence，优化文案在 resume_version.content，证据可追溯）
 6. 未确认的抽取数据只存在于 profile_evidence（PENDING），确认后才落实体表
+
+## 10. 2.0 增量变更（迁移脚本 `database/migration/V2_0__base.sql`）
+
+> 完整设计见 `docs/2.0/database-migration.md`。本脚本只做增量，可重复执行，不删除/不重命名旧表。
+
+**新增表**
+
+| 表 | 定位 | 归属 |
+|---|---|---|
+| `resume_draft` | 八步创建草稿，可覆盖，与不可变 `resume_version` 分离 | `user_id` |
+| `resume_edit_history` | 区块级 AI/人工修改历史，确认后才 APPLIED | `user_id` |
+| `document_asset` | 原始 DOCX / JD 截图 / 证件照，下载需鉴权 | `user_id` |
+| `company` | 200+ 企业信息库（公共数据） | 无 user_id，写仅 ADMIN |
+| `company_recruitment` | 企业秋招/春招/实习/社招信息（公共数据） | 经 `company_id`，写仅 ADMIN |
+
+**新增列**
+
+| 表 | 列 | 用途 |
+|---|---|---|
+| `sys_user` | `role` | USER / ADMIN，默认 USER |
+| `job` | `company_id`、`created_by`、`visibility` | 企业关联与私有岗位可见性 |
+| `resume` | `source_document_asset_id` | 原始简历文件（第一阶段保留文件 + 新版本导出） |
+| `job_application` | `channel`、`applied_url` | 投递渠道记录，不支持自动投递 |
+| `optimization_task` | `user_id` | 直接归属，避免只靠对话间接追溯 |
+
+**新增表字段**
+
+`resume_draft`（八步草稿，可覆盖，与不可变 `resume_version` 分离）
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `user_id` | BIGINT NOT NULL | 归属用户，所有读写按此隔离 |
+| `resume_id` | BIGINT NULL | 关联 `resume`；新建草稿可为空，首次生成后回填 |
+| `draft_name` | VARCHAR(100) NULL | 草稿名称 |
+| `current_step` | TINYINT NOT NULL DEFAULT 1 | 当前步骤 1-8，用于中断恢复 |
+| `content` | JSON NOT NULL | 八步表单完整内容快照（含 `fieldSources` 来源追溯） |
+| `revision` | INT NOT NULL DEFAULT 1 | 乐观锁版本，每次保存 +1；冲突返回 409 |
+| `status` | VARCHAR(20) NOT NULL DEFAULT 'DRAFT' | DRAFT / COMPLETED / ABANDONED |
+| `last_saved_at` | DATETIME NOT NULL | 最近自动保存时间，用于「继续编辑」排序 |
+| `created_at` / `updated_at` | DATETIME NOT NULL | 时间戳 |
+
+索引：`idx_user_status(user_id, status)`、`idx_resume_id(resume_id)`、`idx_last_saved_at(last_saved_at)`。
+
+`resume_edit_history`（区块级候选修改历史，确认后才 APPLIED）
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `user_id` | BIGINT NOT NULL | 归属用户 |
+| `resume_id` / `draft_id` / `base_version_id` | BIGINT NULL | 关联简历、草稿或正式版本 |
+| `section_key` | VARCHAR(50) NOT NULL | BASIC / EDUCATION / PROJECT / SKILL / EXPERIENCE / SELF_EVALUATION / SOFT / PHOTO |
+| `before_content` / `after_content` | JSON NULL | 修改前内容与 AI 候选内容 |
+| `source` | VARCHAR(20) NOT NULL | AI / MANUAL |
+| `status` | VARCHAR(20) NOT NULL DEFAULT 'PENDING' | PENDING / APPLIED / REJECTED |
+| `warnings` | TEXT NULL | JSON 数组：事实校验回退/降级提示 |
+| `prompt_summary` | VARCHAR(500) NULL | 修改意图摘要；STAR 候选以 `STAR:{experienceId}` 标记 |
+| `model` | VARCHAR(50) NULL | 使用的模型，便于追溯 |
+| `created_at` / `applied_at` | DATETIME NULL | 创建与确认时间 |
+
+索引：`idx_user_resume(user_id, resume_id)`、`idx_draft_status(draft_id, status)`、`idx_base_version(base_version_id)`、`idx_created_at(created_at)`。
+
+**草稿写入规则**
+
+1. 草稿只存编辑态，可覆盖；生成正式版本时才转成不可变 `resume_version`。
+2. 保存必须带 `revision`，`UPDATE ... WHERE revision = ?` 命中 0 行时区分 404 / 403 / 409（`revision` 过期或草稿已结束）。
+3. `content` 内每条教育/经历/项目都保存 `fieldSources`，逐字段记录来源（`MANUAL` / `PROFILE` / `AI_CONFIRMED`），生成版本时整体写入 `resume_version.content.sourceTrace`。
+
+**回填规则**
+
+- `optimization_task.user_id`：先经 `chat_session.user_id`，再经 `resume_version → resume.user_id` 回填；只更新 `user_id IS NULL` 的行。
+- 其余新增列一律可空或带默认值，存量数据行为不变（`visibility=PUBLIC`、`channel=MANUAL`、`role=USER`）。
+
+**执行方式**
+
+```bash
+mysql -u <user> -p ai_resume < database/migration/V2_0__base.sql   # 可重复执行
+mysql -u <user> -p ai_resume < database/migration/V2_0__admin.sql  # 按需提升管理员
+```

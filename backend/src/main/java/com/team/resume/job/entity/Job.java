@@ -10,16 +10,23 @@ import lombok.Data;
 
 /**
  * 岗位表实体（job）。
- * 岗位是公共资源：所有登录用户可读，不按 user_id 隔离（docs/database.md §8）。
+ * 2.0 起岗位分公共与私有：公共岗位所有登录用户可读，私有岗位仅创建者与管理员可读；
+ * 写操作（解析 JD、修改技能要求）仅管理员或岗位创建者。
  */
 @Data
 @TableName("job")
 public class Job {
 
+    public static final String VISIBILITY_PUBLIC = "PUBLIC";
+    public static final String VISIBILITY_PRIVATE = "PRIVATE";
+
     @TableId(type = IdType.AUTO)
     private Long id;
 
     private String company;
+
+    /** 关联 company；旧数据为空，company 文本保留兜底 */
+    private Long companyId;
 
     private String position;
 
@@ -31,6 +38,12 @@ public class Job {
 
     /** MOCK（内置模拟）/ MANUAL（手动录入） */
     private String sourceType;
+
+    /** 创建者用户 ID；系统/种子数据为空 */
+    private Long createdBy;
+
+    /** PUBLIC / PRIVATE */
+    private String visibility;
 
     private String externalUrl;
 

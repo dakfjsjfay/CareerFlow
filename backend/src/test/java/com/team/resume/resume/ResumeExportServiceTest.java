@@ -30,6 +30,7 @@ import com.team.resume.resume.mapper.ResumeVersionMapper;
 import com.team.resume.resume.service.ResumeAiService;
 import com.team.resume.resume.service.ResumeContentAssembler;
 import com.team.resume.resume.service.ResumeDocxExporter;
+import com.team.resume.resume.service.ResumePdfExporter;
 import com.team.resume.resume.service.ResumeService;
 import com.team.resume.resume.service.ResumeVersionService;
 import com.team.resume.resume.vo.ExportFile;
@@ -45,6 +46,12 @@ class ResumeExportServiceTest {
     @Mock
     private ResumeVersionService versionService;
     @Mock
+    private com.team.resume.resume.draft.mapper.ResumeDraftMapper draftMapper;
+    @Mock
+    private com.team.resume.resume.edit.mapper.ResumeEditHistoryMapper editHistoryMapper;
+    @Mock
+    private com.team.resume.application.mapper.JobApplicationMapper applicationMapper;
+    @Mock
     private ProfileService profileService;
     @Mock
     private ResumeContentAssembler assembler;
@@ -52,6 +59,8 @@ class ResumeExportServiceTest {
     private ResumeAiService aiService;
     @Mock
     private ResumeDocxExporter docxExporter;
+    @Mock
+    private ResumePdfExporter pdfExporter;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ResumeService service;
@@ -59,7 +68,8 @@ class ResumeExportServiceTest {
     @BeforeEach
     void setUp() {
         service = new ResumeService(resumeMapper, versionMapper, versionService,
-                profileService, assembler, aiService, docxExporter, objectMapper);
+                draftMapper, editHistoryMapper, applicationMapper,
+                profileService, assembler, aiService, docxExporter, pdfExporter, objectMapper);
     }
 
     @Test
@@ -67,17 +77,17 @@ class ResumeExportServiceTest {
         when(resumeMapper.selectById(1L)).thenReturn(resume());
 
         BusinessException error = assertThrows(BusinessException.class,
-                () -> service.exportDocx(7L, 1L, request(null, "DOCX")));
+                () -> service.export(7L, 1L, request(null, "DOCX")));
 
         assertEquals(400, error.getCode());
     }
 
     @Test
-    void exportRejectsNonDocxFormat() {
+    void exportRejectsUnsupportedFormat() {
         when(resumeMapper.selectById(1L)).thenReturn(resume());
 
         BusinessException error = assertThrows(BusinessException.class,
-                () -> service.exportDocx(7L, 1L, request(1L, "PDF")));
+                () -> service.export(7L, 1L, request(1L, "TXT")));
 
         assertEquals(400, error.getCode());
     }
@@ -92,12 +102,25 @@ class ResumeExportServiceTest {
                 .thenReturn(version(1L, 1, versionOne));
         when(docxExporter.export(any(), anyString(), anyInt())).thenReturn(new byte[] {1, 2, 3});
 
-        ExportFile file = service.exportDocx(7L, 1L, request(1L, "DOCX"));
+        ExportFile file = service.export(7L, 1L, request(1L, "DOCX"));
 
         assertEquals("我的简历-v1.docx", file.filename());
         ArgumentCaptor<ResumeContent> captor = ArgumentCaptor.forClass(ResumeContent.class);
         verify(docxExporter).export(captor.capture(), eq("我的简历"), eq(1));
         assertEquals("版本一", captor.getValue().selfEvaluation());
+    }
+
+    @Test
+    void exportPdfUsesPdfExporterAndPdfExtension() {
+        when(resumeMapper.selectById(1L)).thenReturn(resume());
+        when(versionService.requireOwned(7L, 1L, 1L)).thenReturn(version(1L, 1, content("PDF")));
+        when(pdfExporter.export(any(), anyString(), eq(1))).thenReturn(new byte[] {'%', 'P', 'D', 'F'});
+
+        ExportFile file = service.export(7L, 1L, request(1L, "PDF"));
+
+        assertEquals("我的简历-v1.pdf", file.filename());
+        verify(pdfExporter).export(any(), eq("我的简历"), eq(1));
+        verify(docxExporter, org.mockito.Mockito.never()).export(any(), anyString(), anyInt());
     }
 
     @Test
@@ -107,7 +130,7 @@ class ResumeExportServiceTest {
                 .thenThrow(new BusinessException(403, "无权访问该版本"));
 
         BusinessException error = assertThrows(BusinessException.class,
-                () -> service.exportDocx(7L, 1L, request(9L, "DOCX")));
+                () -> service.export(7L, 1L, request(9L, "DOCX")));
 
         assertEquals(403, error.getCode());
     }
@@ -120,7 +143,7 @@ class ResumeExportServiceTest {
         when(versionService.requireOwned(7L, 1L, 1L)).thenReturn(broken);
 
         BusinessException error = assertThrows(BusinessException.class,
-                () -> service.exportDocx(7L, 1L, request(1L, "DOCX")));
+                () -> service.export(7L, 1L, request(1L, "DOCX")));
 
         assertEquals(500, error.getCode());
     }

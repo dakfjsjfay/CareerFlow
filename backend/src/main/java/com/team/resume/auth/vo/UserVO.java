@@ -17,4 +17,7 @@ public class UserVO {
     private String username;
 
     private String email;
+
+    /** 角色：USER / ADMIN */
+    private String role;
 }

@@ -11,12 +11,16 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
 import com.team.resume.ai.dto.JdParseResult;
 import com.team.resume.ai.dto.OptimizationReplyResult;
 import com.team.resume.ai.dto.ResumeGenerationResult;
 import com.team.resume.ai.dto.ResumeGenerationResult.Highlight;
+import com.team.resume.ai.dto.SectionAnalysisResult;
+import com.team.resume.ai.dto.SectionRewriteResult;
+import com.team.resume.ai.dto.StarStructureResult;
 import com.team.resume.common.BusinessException;
 
 /**
@@ -191,6 +195,70 @@ public class AIResponseParser {
             throw new BusinessException(502, "AI 未能生成投递话术，请稍后重试");
         }
         return pitch;
+    }
+
+    /**
+     * 单区块分析：score 收敛到 [0,100]；列表字段只保留非空字符串。
+     */
+    public SectionAnalysisResult parseSectionAnalysis(String content, String sectionKey) {
+        JsonNode root = readJson(content);
+        int score = Math.max(0, Math.min(100, root.path("score").asInt(60)));
+        return new SectionAnalysisResult(
+                sectionKey,
+                score,
+                readStringList(root, "issues"),
+                readStringList(root, "suggestions"),
+                readStringList(root, "missingFields"),
+                root.path("factsConfirmed").asBoolean(true));
+    }
+
+    /**
+     * 单区块改写：afterContent 必须是对象或数组，否则视为无效输出。
+     */
+    public SectionRewriteResult parseSectionRewrite(String content) {
+        JsonNode root = readJson(content);
+        JsonNode afterContent = root.get("afterContent");
+        if (afterContent == null || afterContent.isNull()
+                || !(afterContent.isObject() || afterContent.isArray())) {
+            throw new BusinessException(502, "AI 未返回有效的区块内容，请稍后重试");
+        }
+        return new SectionRewriteResult(afterContent, readStringList(root, "warnings"));
+    }
+
+    /**
+     * 区块对话：reply 必填非空。
+     */
+    public String parseSectionChat(String content) {
+        JsonNode root = readJson(content);
+        String reply = root.path("reply").asText("").trim();
+        if (reply.isEmpty()) {
+            throw new BusinessException(502, "AI 返回内容不完整，请稍后重试");
+        }
+        return reply;
+    }
+
+    /**
+     * STAR 结构化：四个要素允许为空（用户没填就不能补），但全空视为无效输出。
+     */
+    public StarStructureResult parseStarStructure(String content) {
+        JsonNode root = readJson(content);
+        JsonNode star = root.get("star");
+        if (star == null || !star.isObject()) {
+            throw new BusinessException(502, "AI 未返回有效的 STAR 内容，请稍后重试");
+        }
+        ObjectNode normalized = objectMapper.createObjectNode();
+        boolean any = false;
+        for (String key : new String[] {"situation", "task", "action", "result"}) {
+            String value = star.path(key).asText("").trim();
+            normalized.put(key, value);
+            any = any || !value.isEmpty();
+        }
+        if (!any) {
+            throw new BusinessException(502, "AI 未返回有效的 STAR 内容，请稍后重试");
+        }
+        return new StarStructureResult(normalized,
+                root.path("description").asText("").trim(),
+                readStringList(root, "warnings"));
     }
 
     private JsonNode readJson(String content) {

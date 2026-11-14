@@ -43,6 +43,16 @@ public class ResumeVersionService {
     @Transactional
     public ResumeVersion create(Long userId, Long resumeId, ResumeContent content,
                                 String generationReason) {
+        return createRaw(userId, resumeId, objectMapper.valueToTree(content), generationReason);
+    }
+
+    /**
+     * 写入已序列化的版本内容（八步草稿需要额外携带 sourceTrace 来源链）。
+     * 版本只新增、不修改，旧版本永远保持原样。
+     */
+    @Transactional
+    public ResumeVersion createRaw(Long userId, Long resumeId, JsonNode content,
+                                   String generationReason) {
         Resume resume = resumeMapper.selectByIdForUpdate(resumeId);
         if (resume == null) {
             throw new BusinessException(404, "简历不存在");
@@ -55,7 +65,7 @@ public class ResumeVersionService {
         ResumeVersion version = new ResumeVersion();
         version.setResumeId(resumeId);
         version.setVersionNumber(nextNumber);
-        version.setContent(objectMapper.valueToTree(content));
+        version.setContent(content);
         version.setGenerationReason(generationReason);
         version.setCreatedAt(LocalDateTime.now());
 

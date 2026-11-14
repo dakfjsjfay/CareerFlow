@@ -55,6 +55,9 @@ public class AuthController {
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
         }
-        return Result.ok(new UserVO(user.getId(), user.getUsername(), user.getEmail()));
+        return Result.ok(new UserVO(user.getId(), user.getUsername(), user.getEmail(),
+                user.getRole() == null || user.getRole().isBlank()
+                        ? SysUser.ROLE_USER
+                        : user.getRole()));
     }
 }

@@ -57,7 +57,7 @@
 |---|---|---|---|
 | /api/auth/register | POST | 注册 | username 3~50 字符必填；password ≥8 字符必填；用户名已存在 → 409 |
 | /api/auth/login | POST | 登录 | 用户名或密码错误 → 401 |
-| /api/auth/me | GET | 当前用户信息 | Token 失效 → 401 |
+| /api/auth/me | GET | 当前用户信息（含 `role`） | Token 失效 → 401 |
 
 注册：
 
@@ -70,7 +70,7 @@
 ```json
 {
   "code": 200, "message": "success",
-  "data": { "token": "jwt-token", "user": { "id": 1, "username": "student01" } }
+  "data": { "token": "jwt-token", "user": { "id": 1, "username": "student01", "role": "USER" } }
 }
 ```
 
@@ -313,7 +313,8 @@ PUT /api/profile 请求（字段全部可选；null 表示不修改，空串表�
 | /api/resumes/{id}/versions | POST | 手动保存新版本（编辑 / 换模板 / 恢复；**永不覆盖旧版本**） |
 | /api/resumes/{id}/versions | GET | 历史版本列表（不含 content） |
 | /api/resumes/{id}/versions/{versionId} | GET | 指定版本内容 |
-| /api/resumes/{id}/export | POST | 导出 DOCX（**必须指定 versionId**；PDF 由前端浏览器打印生成） |
+| /api/resumes/{id}/export | POST | 导出 DOCX / PDF（**必须指定 versionId**；`format` 取值 `DOCX` 或 `PDF`） |
+| /api/resumes/{id} | DELETE | 删除简历及其版本、草稿、修改历史（归属校验；被投递记录引用时返回 409） |
 
 ### 7.1 创建 / 列表 / 详情
 
@@ -437,7 +438,7 @@ PUT /api/profile 请求（字段全部可选；null 表示不修改，空串表�
 
 说明：`experiences[].type` 由 Java 判定（岗位/公司含「实习 / Intern」→ `INTERNSHIP`，否则 `WORK`）；`highlights` 为 AI 生成且通过事实校验的亮点；未提供的字段为 null，模板渲染时隐藏。
 
-### 7.5 导出 DOCX
+### 7.5 导出 DOCX / PDF
 
 请求（⭐ versionId 必填，**不允许默认导出最新版本**）：
 
@@ -448,27 +449,139 @@ PUT /api/profile 请求（字段全部可选；null 表示不修改，空串表�
 | format | 输出 | Content-Type |
 |---|---|---|
 | DOCX | .docx | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+| PDF | .pdf | `application/pdf` |
 
-响应为二进制流，`Content-Disposition: attachment; filename*=UTF-8''...`；文件名为 `{resumeName}-v{versionNumber}.docx`。
-PDF 由前端把预览区交给浏览器打印生成（与模板样式 100% 一致），不经过后端。
+响应为二进制流，`Content-Disposition: attachment; filename*=UTF-8''...`；文件名为 `{resumeName}-v{versionNumber}.docx` / `.pdf`。
+PDF 由后端 PDFBox 渲染（加载系统中文 TTF 字体，自动换行分页），与预览内容一致；系统缺少中文字体时返回 500 并提示配置 `app.resume.pdf-font-path`。
 
 ### 7.6 校验与错误
 
 - 简历/版本不存在 → 404；不属于当前用户 → 403。
-- `templateId` 缺失/超长、`generationReason` 非法、`versionId` 缺失、`format` 非 DOCX → 400。
+- `templateId` 缺失/超长、`generationReason` 非法、`versionId` 缺失、`format` 非 DOCX/PDF → 400。
 - 档案没有任何 CONFIRMED 教育/技能/项目/经历 → 400，提示先完善档案。
 - AI 调用失败（超时 / HTTP 错误 / JSON 解析失败）→ 502，不创建版本。
 - AI 输出事实校验失败 → 使用确定性兜底文案，版本照常创建，`content.meta.warnings` 含 `AI_FACT_CHECK_FALLBACK`。
 - 并发生成由锁定事务 + `UNIQUE(resume_id, version_number)` 保证；冲突返回 409「版本冲突，请重试」。
+
+### 7.7 八步创建草稿（resume-drafts）
+
+草稿是**可覆盖的编辑态**，与不可变的 `resume_version` 分离；所有接口按 `user_id` 隔离。
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/resume-drafts | POST | 创建草稿（step=1，revision=1，status=DRAFT） |
+| /api/resume-drafts | GET | 草稿列表（?status=DRAFT/COMPLETED/ABANDONED，默认 DRAFT） |
+| /api/resume-drafts/{id} | GET | 草稿详情（含 content 与 currentStep，用于中断恢复） |
+| /api/resume-drafts/{id} | PUT | 自动保存（**必须带 revision**，乐观锁，成功 revision+1） |
+| /api/resume-drafts/{id} | DELETE | 放弃草稿（status=ABANDONED，不物理删除） |
+| /api/resume-drafts/{id}/complete | POST | 第八步：校验并生成全新不可变版本 |
+
+保存请求：
+
+```json
+{
+  "currentStep": 3,
+  "revision": 5,
+  "draftName": "2027 届 Java 简历",
+  "content": { "schemaVersion": 1, "basic": {}, "direction": {}, "educations": [], "experiences": [], "projects": [], "skills": [], "soft": {}, "photo": {}, "preview": {} }
+}
+```
+
+草稿 content 约定：
+
+| 字段 | 说明 |
+|---|---|
+| `basic` | 姓名、电话、邮箱、城市、教育状态 |
+| `direction` | 行业、目标岗位、城市、求职目标 |
+| `educations` / `experiences` / `projects` | 每条含 `id`、业务字段、`star`（S/T/A/R）与 `fieldSources`（逐字段来源标识） |
+| `skills` | 技能列表 |
+| `soft` | 自我评价、个人优势 |
+| `photo` | 证件照 dataURL 与裁剪参数 |
+| `preview` | 模板 ID、字体、间距等预览微调参数 |
+| `meta` | 扩展信息 |
+
+错误约定：`revision` 过期 → 409「草稿已在其他页面更新，请刷新后重试」；草稿已完成/已放弃 → 409；非本人 → 403；不存在 → 404。
+
+完成请求与响应：
+
+```json
+{ "resumeName": "Java 后端简历", "templateId": "6746fe472f0052cb6a9365aa", "generationReason": "INITIAL" }
+```
+
+```json
+{ "code": 200, "message": "success",
+  "data": { "resumeId": 1, "versionId": 3, "versionNumber": 3, "draftId": 7 } }
+```
+
+`generationReason` ∈ `INITIAL / JOB_TARGETED / OPTIMIZATION / REGENERATE`。生成时校验 `basic.realName` 与 `phone/email` 至少一项；每次 complete 都调用 `createRaw` 新增版本（versionNumber = max+1），**绝不覆盖历史版本**；版本 `content` 附带 `sourceTrace`（每条经历/项目的 `fieldSources`）。
+
+### 7.8 区块分析与候选修改（resume-edit-history）
+
+AI 输出**不直接写草稿**：先落 `resume_edit_history(PENDING)`，用户确认后才写回草稿并标记 APPLIED。
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/resume-drafts/{id}/sections/{sectionKey}/analyze | POST | 区块分析（不落库），返回评分/问题/建议/缺失字段 |
+| /api/resume-drafts/{id}/sections/{sectionKey}/rewrite | POST | AI 改写 → 事实校验 → PENDING 候选 |
+| /api/resume-drafts/{id}/sections/{sectionKey}/chat | POST | 区块对话（无状态，不落库） |
+| /api/resume-drafts/{id}/experiences/{experienceId}/followups | GET | STAR 缺失项智能追问（确定性规则，不调用 AI） |
+| /api/resume-drafts/{id}/experiences/{experienceId}/star | POST | STAR 结构化：润色四要素，生成单条经历候选（PENDING，`promptSummary=STAR:{experienceId}`） |
+| /api/resume-drafts/{id}/edit-history | GET | 草稿的全部修改历史 |
+| /api/resumes/{resumeId}/edit-history | GET | 某简历的全部修改历史 |
+| /api/resume-edit-history/{id} | GET | 候选详情 |
+| /api/resume-edit-history/{id}/confirm | POST | 确认应用（PENDING → APPLIED，草稿 revision+1） |
+| /api/resume-edit-history/{id}/reject | POST | 拒绝（PENDING → REJECTED，草稿不变） |
+
+`sectionKey` ∈ `BASIC / EDUCATION / PROJECT / SKILL / EXPERIENCE / SELF_EVALUATION / SOFT / PHOTO`。
+
+候选返回结构：
+
+```json
+{
+  "id": 601, "draftId": 11, "sectionKey": "EXPERIENCE",
+  "beforeContent": [], "afterContent": [],
+  "source": "AI", "status": "PENDING",
+  "warnings": ["字段 company 未在用户提供的信息中出现，已回退原文"],
+  "promptSummary": "更专业", "model": "deepseek-chat",
+  "createdAt": "2026-11-14T12:00:00", "appliedAt": null
+}
+```
+
+事实校验规则（`CandidateFactGuard`）：
+
+1. 事实字段（公司、学校、专业、学历、岗位、项目名、起止时间等）若未在用户原文出现 → 回退 `before` 值或清空，并写入 warnings；
+2. 技能/技术栈列表只保留原文出现过的项；
+3. 叙述字段中带未提供数字的句子直接删除；
+4. AI 新增的事实字段一律丢弃；STAR 候选保留用户输入的 S/T/A/R 数字。
+
+错误约定：重复 confirm/reject → 409；候选为空 → 400；STAR 四项全空 → 400「AI 不会替你编造经历」。
 
 ## 8. 岗位（jobs）
 
 | 接口 | 方法 | 说明 |
 |---|---|---|
 | /api/jobs | GET | 岗位列表（分页 + 筛选） |
-| /api/jobs/{id} | GET | 岗位详情（含 job_requirement 技能列表） |
-| /api/jobs | POST | 手动新增岗位（MVP 仅开发用途，不开放管理端） |
-| /api/jobs/{id}/parse | POST | AI 解析 JD 生成技能要求 |
+| /api/jobs/{id} | GET | 岗位详情（含 job_requirement 技能列表、`canEdit`） |
+| /api/jobs | POST | 新增岗位（普通用户创建私有岗位，ADMIN 创建公共岗位） |
+| /api/jobs/{id}/parse | POST | AI 解析 JD 生成技能要求（仅 ADMIN 或岗位创建者） |
+
+### 8.0 2.0 权限与可见性规则
+
+| 场景 | 规则 |
+|---|---|
+| 列表 / 详情 | 普通用户只能看到 `visibility='PUBLIC'` 或 `created_by=当前用户` 的岗位；ADMIN 可见全部 |
+| 详情越权 | 读取他人私有岗位返回 404「岗位不存在」（不暴露存在性） |
+| 新增岗位 | 普通用户写入 `created_by=当前用户`、`visibility=PRIVATE`；ADMIN 写入 `PUBLIC` |
+| JD 解析 | 仅 ADMIN 或岗位创建者可写 `job_requirement`；其他用户返回 403「无权修改该岗位」 |
+| 管理端 | `/api/admin/**` 需 `role=ADMIN`，普通用户 403；角色由 `sys_user.role` 维护 |
+
+详情返回新增字段：
+
+```json
+{ "id": 1, "position": "Java 开发实习生", "canEdit": false }
+```
+
+`canEdit=true` 时前端才展示「AI 解析 JD」按钮。
 
 ### 8.1 列表筛选参数（二轮审查明确）
 

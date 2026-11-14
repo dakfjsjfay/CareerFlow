@@ -43,6 +43,15 @@ class ResumeServiceTest {
     private ResumeVersionService versionService;
 
     @Mock
+    private com.team.resume.resume.draft.mapper.ResumeDraftMapper draftMapper;
+
+    @Mock
+    private com.team.resume.resume.edit.mapper.ResumeEditHistoryMapper editHistoryMapper;
+
+    @Mock
+    private com.team.resume.application.mapper.JobApplicationMapper applicationMapper;
+
+    @Mock
     private com.team.resume.profile.service.ProfileService profileService;
 
     @Mock
@@ -54,12 +63,16 @@ class ResumeServiceTest {
     @Mock
     private com.team.resume.resume.service.ResumeDocxExporter docxExporter;
 
+    @Mock
+    private com.team.resume.resume.service.ResumePdfExporter pdfExporter;
+
     private ResumeService service;
 
     @BeforeEach
     void setUp() {
         service = new ResumeService(resumeMapper, versionMapper, versionService,
-                profileService, assembler, aiService, docxExporter, new ObjectMapper());
+                draftMapper, editHistoryMapper, applicationMapper,
+                profileService, assembler, aiService, docxExporter, pdfExporter, new ObjectMapper());
     }
 
     @Test
@@ -74,8 +87,8 @@ class ResumeServiceTest {
 
         assertEquals("我的简历", summary.resumeName());
         assertNull(summary.currentVersionId());
-        verify(resumeMapper).insert(org.mockito.ArgumentMatchers.argThat((Resume resume) ->
-                resume.getUserId() == 7L && "我的简历".equals(resume.getResumeName())));
+        verify(resumeMapper).insert(org.mockito.ArgumentMatchers
+                .argThat((Resume resume) -> resume.getUserId() == 7L && "我的简历".equals(resume.getResumeName())));
     }
 
     @Test
@@ -146,6 +159,45 @@ class ResumeServiceTest {
                 () -> service.detail(7L, 1L));
 
         assertEquals(404, error.getCode());
+    }
+
+    @Test
+    void deleteRejectsResumeReferencedByApplications() {
+        when(resumeMapper.selectById(1L)).thenReturn(resume(1L, 7L));
+        when(versionMapper.selectList(any())).thenReturn(List.of(version(5L, 1L, 1, "tpl-9")));
+        when(applicationMapper.selectCount(any())).thenReturn(2L);
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> service.delete(7L, 1L));
+
+        assertEquals(409, error.getCode());
+        verify(resumeMapper, never()).deleteById(any(Long.class));
+        verify(versionMapper, never()).delete(any());
+    }
+
+    @Test
+    void deleteCleansVersionsDraftsAndHistory() {
+        when(resumeMapper.selectById(1L)).thenReturn(resume(1L, 7L));
+        when(versionMapper.selectList(any())).thenReturn(List.of(version(5L, 1L, 1, "tpl-9")));
+        when(applicationMapper.selectCount(any())).thenReturn(0L);
+
+        service.delete(7L, 1L);
+
+        verify(draftMapper).delete(any());
+        verify(editHistoryMapper).delete(any());
+        verify(versionMapper).delete(any());
+        verify(resumeMapper).deleteById(1L);
+    }
+
+    @Test
+    void deleteRejectsOtherUsersResume() {
+        when(resumeMapper.selectById(1L)).thenReturn(resume(1L, 8L));
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> service.delete(7L, 1L));
+
+        assertEquals(403, error.getCode());
+        verify(resumeMapper, never()).deleteById(any(Long.class));
     }
 
     private static Resume resume(Long id, Long userId) {

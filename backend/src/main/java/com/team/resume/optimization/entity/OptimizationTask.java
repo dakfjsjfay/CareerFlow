@@ -31,6 +31,9 @@ public class OptimizationTask {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 归属用户；存量数据迁移时回填，空值按对话会话归属兜底 */
+    private Long userId;
+
     /** 目标岗位 */
     private Long jobId;
 

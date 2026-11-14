@@ -26,5 +26,8 @@ public class JobDetailVO {
 
     private String externalUrl;
 
+    /** 当前用户是否可修改该岗位（ADMIN 或岗位创建者），前端据此展示解析按钮 */
+    private Boolean canEdit;
+
     private List<JobRequirementVO> requirements;
 }

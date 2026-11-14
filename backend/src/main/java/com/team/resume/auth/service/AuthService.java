@@ -42,6 +42,8 @@ public class AuthService {
         SysUser user = new SysUser();
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        // 显式写入默认角色，不依赖数据库默认值
+        user.setRole(SysUser.ROLE_USER);
         user.setEmail(request.getEmail());
         // 不依赖数据库默认值，显式写入创建时间
         user.setCreatedAt(LocalDateTime.now());
@@ -54,7 +56,10 @@ public class AuthService {
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new BusinessException(401, "用户名或密码错误");
         }
-        UserVO userVO = new UserVO(user.getId(), user.getUsername(), user.getEmail());
-        return new LoginResponse(jwtUtil.generate(user.getId(), user.getUsername()), userVO);
+        String role = user.getRole() == null || user.getRole().isBlank()
+                ? SysUser.ROLE_USER
+                : user.getRole();
+        UserVO userVO = new UserVO(user.getId(), user.getUsername(), user.getEmail(), role);
+        return new LoginResponse(jwtUtil.generate(user.getId(), user.getUsername(), role), userVO);
     }
 }

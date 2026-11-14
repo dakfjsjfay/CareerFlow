@@ -49,6 +49,12 @@ class ResumeGenerateServiceTest {
     @Mock
     private ResumeVersionService versionService;
     @Mock
+    private com.team.resume.resume.draft.mapper.ResumeDraftMapper draftMapper;
+    @Mock
+    private com.team.resume.resume.edit.mapper.ResumeEditHistoryMapper editHistoryMapper;
+    @Mock
+    private com.team.resume.application.mapper.JobApplicationMapper applicationMapper;
+    @Mock
     private ProfileService profileService;
     @Mock
     private ResumeContentAssembler assembler;
@@ -58,13 +64,17 @@ class ResumeGenerateServiceTest {
     @Mock
     private com.team.resume.resume.service.ResumeDocxExporter docxExporter;
 
+    @Mock
+    private com.team.resume.resume.service.ResumePdfExporter pdfExporter;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ResumeService service;
 
     @BeforeEach
     void setUp() {
         service = new ResumeService(resumeMapper, versionMapper, versionService,
-                profileService, assembler, aiService, docxExporter, objectMapper);
+                draftMapper, editHistoryMapper, applicationMapper,
+                profileService, assembler, aiService, docxExporter, pdfExporter, objectMapper);
     }
 
     @Test

@@ -107,6 +107,9 @@ class AuthServiceTest {
         request.setUsername("student01");
         request.setPassword("Password123");
 
-        assertThat(authService.login(request).getToken()).isNotBlank();
+        var response = authService.login(request);
+        assertThat(response.getToken()).isNotBlank();
+        // 旧数据没有角色时按普通用户返回，避免前端拿到 null
+        assertThat(response.getUser().getRole()).isEqualTo(SysUser.ROLE_USER);
     }
 }

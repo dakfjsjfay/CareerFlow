@@ -32,11 +32,12 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generate(Long userId, String username) {
+    public String generate(Long userId, String username, String role) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("username", username)
+                .claim("role", role == null || role.isBlank() ? "USER" : role)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + EXPIRE_MILLIS))
                 .signWith(key)

@@ -80,6 +80,11 @@ export function listResumeVersions(id: number) {
   >
 }
 
+/** 删除简历（归属校验；已被投递记录引用时后端返回 409） */
+export function deleteResume(id: number) {
+  return request.delete(`/resumes/${id}`) as unknown as Promise<ApiResult<null>>
+}
+
 export function getResumeVersion(id: number, versionId: number) {
   return request.get(`/resumes/${id}/versions/${versionId}`) as unknown as Promise<
     ApiResult<ResumeVersion>
@@ -90,6 +95,15 @@ export function exportResumeDocx(id: number, versionId: number) {
   return request.post(
     `/resumes/${id}/export`,
     { versionId, format: 'DOCX' },
+    { responseType: 'blob' },
+  ) as unknown as Promise<DownloadResult>
+}
+
+/** 导出 PDF：后端生成二进制，前端只负责触发下载 */
+export function exportResumePdf(id: number, versionId: number) {
+  return request.post(
+    `/resumes/${id}/export`,
+    { versionId, format: 'PDF' },
     { responseType: 'blob' },
   ) as unknown as Promise<DownloadResult>
 }

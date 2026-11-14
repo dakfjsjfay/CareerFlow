@@ -7,12 +7,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
 import com.team.resume.ai.dto.JdParseResult;
 import com.team.resume.ai.dto.Message;
 import com.team.resume.ai.dto.OptimizationReplyResult;
 import com.team.resume.ai.dto.ResumeGenerationResult;
+import com.team.resume.ai.dto.SectionAnalysisResult;
+import com.team.resume.ai.dto.SectionRewriteResult;
+import com.team.resume.ai.dto.StarStructureResult;
 
 /**
  * 业务侧统一 AI 入口（架构文档 §4）。
@@ -22,6 +29,7 @@ import com.team.resume.ai.dto.ResumeGenerationResult;
 public class AIService {
 
     private static final Logger log = LoggerFactory.getLogger(AIService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
      * 实测部分长上下文会让模型返回纯空白 content（finish_reason=stop）。
@@ -156,5 +164,88 @@ public class AIService {
         messages.add(new Message("user", "请从以上对话中抽取与「" + targetSkill + "」相关的新信息。"));
         String content = deepSeekClient.completeJson(messages);
         return responseParser.parseChatResult(content);
+    }
+
+    /**
+     * 八步简历：单区块分析（只分析、不落库）。
+     */
+    public SectionAnalysisResult analyzeSection(String sectionKey, String sectionJson,
+                                                String focus, String jobContext) {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("sectionKey", sectionKey);
+        payload.set("section", readTreeOrText(sectionJson));
+        payload.put("focus", focus == null ? "" : focus);
+        payload.put("jobContext", jobContext == null ? "" : jobContext);
+
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.sectionAnalyzePrompt()),
+                new Message("user", payload.toString()));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseSectionAnalysis(content, sectionKey);
+    }
+
+    /**
+     * 八步简历：单区块候选改写。调用方必须在写入候选区前做事实校验。
+     */
+    public SectionRewriteResult rewriteSection(String sectionKey, String sectionJson,
+                                               String instruction, String jobContext) {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("sectionKey", sectionKey);
+        payload.set("section", readTreeOrText(sectionJson));
+        payload.put("instruction", instruction == null ? "" : instruction);
+        payload.put("jobContext", jobContext == null ? "" : jobContext);
+
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.sectionRewritePrompt()),
+                new Message("user", payload.toString()));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseSectionRewrite(content);
+    }
+
+    /**
+     * 八步简历：区块 AI 对话（无状态，历史由调用方传入）。
+     */
+    public String chatSection(String sectionKey, String sectionJson, String historyJson, String message) {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("sectionKey", sectionKey);
+        payload.set("section", readTreeOrText(sectionJson));
+        payload.set("history", readTreeOrText(historyJson == null ? "[]" : historyJson));
+        payload.put("message", message == null ? "" : message);
+
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.sectionChatPrompt()),
+                new Message("user", payload.toString()));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseSectionChat(content);
+    }
+
+    /**
+     * 八步简历：STAR 结构化润色（不补写用户未填的要素）。
+     */
+    public StarStructureResult structureStar(String experienceJson, String situation, String task,
+                                             String action, String result) {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.set("experience", readTreeOrText(experienceJson));
+        payload.put("situation", situation == null ? "" : situation);
+        payload.put("task", task == null ? "" : task);
+        payload.put("action", action == null ? "" : action);
+        payload.put("result", result == null ? "" : result);
+
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.starStructurePrompt()),
+                new Message("user", payload.toString()));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseStarStructure(content);
+    }
+
+    private static JsonNode readTreeOrText(String json) {
+        if (json == null || json.isBlank()) {
+            return MAPPER.createObjectNode();
+        }
+        try {
+            return MAPPER.readTree(json);
+        } catch (JsonProcessingException e) {
+            return MAPPER.getNodeFactory().textNode(json);
+        }
     }
 }

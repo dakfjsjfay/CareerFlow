@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * Spring Security 最简配置（二轮审查确定：无 session、JWT filter）：
  * - 放行注册/登录/健康检查，其余接口必须带有效 JWT
+ * - 管理端接口（/api/admin/**）要求 ADMIN 角色（2.0 起）
  * - 关闭 CSRF（前后端分离 + 无 Cookie session，不需要它）
  * - 未认证返回 401 JSON、无权限返回 403 JSON（统一 Result 格式，与 api.md 契约一致）
  */
@@ -52,6 +53,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/health").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(this::writeUnauthorized)

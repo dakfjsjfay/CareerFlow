@@ -13,6 +13,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team.resume.application.entity.JobApplication;
+import com.team.resume.application.mapper.JobApplicationMapper;
 import com.team.resume.common.BusinessException;
 import com.team.resume.profile.service.ProfileService;
 import com.team.resume.profile.vo.ProfileVO;
@@ -20,6 +22,10 @@ import com.team.resume.resume.dto.CreateResumeRequest;
 import com.team.resume.resume.dto.ExportResumeRequest;
 import com.team.resume.resume.dto.GenerateResumeRequest;
 import com.team.resume.resume.dto.SaveVersionRequest;
+import com.team.resume.resume.draft.entity.ResumeDraft;
+import com.team.resume.resume.draft.mapper.ResumeDraftMapper;
+import com.team.resume.resume.edit.entity.ResumeEditHistory;
+import com.team.resume.resume.edit.mapper.ResumeEditHistoryMapper;
 import com.team.resume.resume.entity.Resume;
 import com.team.resume.resume.entity.ResumeVersion;
 import com.team.resume.resume.mapper.ResumeMapper;
@@ -50,27 +56,39 @@ public class ResumeService {
     private final ResumeMapper resumeMapper;
     private final ResumeVersionMapper versionMapper;
     private final ResumeVersionService versionService;
+    private final ResumeDraftMapper draftMapper;
+    private final ResumeEditHistoryMapper editHistoryMapper;
+    private final JobApplicationMapper applicationMapper;
     private final ProfileService profileService;
     private final ResumeContentAssembler assembler;
     private final ResumeAiService aiService;
     private final ResumeDocxExporter docxExporter;
+    private final ResumePdfExporter pdfExporter;
     private final ObjectMapper objectMapper;
 
     public ResumeService(ResumeMapper resumeMapper,
                          ResumeVersionMapper versionMapper,
                          ResumeVersionService versionService,
+                         ResumeDraftMapper draftMapper,
+                         ResumeEditHistoryMapper editHistoryMapper,
+                         JobApplicationMapper applicationMapper,
                          ProfileService profileService,
                          ResumeContentAssembler assembler,
                          ResumeAiService aiService,
                          ResumeDocxExporter docxExporter,
+                         ResumePdfExporter pdfExporter,
                          ObjectMapper objectMapper) {
         this.resumeMapper = resumeMapper;
         this.versionMapper = versionMapper;
         this.versionService = versionService;
+        this.draftMapper = draftMapper;
+        this.editHistoryMapper = editHistoryMapper;
+        this.applicationMapper = applicationMapper;
         this.profileService = profileService;
         this.assembler = assembler;
         this.aiService = aiService;
         this.docxExporter = docxExporter;
+        this.pdfExporter = pdfExporter;
         this.objectMapper = objectMapper;
     }
 
@@ -193,15 +211,17 @@ public class ResumeService {
     }
 
     /**
-     * 导出指定版本的 DOCX。必须显式传 versionId，避免「导出最新版」破坏版本可追溯性。
+     * 导出指定版本：DOCX 复用原有模板导出器，PDF 由后端 PDFBox 生成。
+     * 导出只读版本内容，不创建新版本、不修改任何数据。
      */
-    public ExportFile exportDocx(Long userId, Long resumeId, ExportResumeRequest request) {
+    public ExportFile export(Long userId, Long resumeId, ExportResumeRequest request) {
         Resume resume = requireOwned(userId, resumeId);
         if (request == null || request.getVersionId() == null) {
             throw new BusinessException(400, "versionId 不能为空");
         }
-        if (request.getFormat() == null || !"DOCX".equalsIgnoreCase(request.getFormat())) {
-            throw new BusinessException(400, "仅支持 DOCX 导出");
+        String format = request.getFormat() == null ? "DOCX" : request.getFormat().trim().toUpperCase();
+        if (!"DOCX".equals(format) && !"PDF".equals(format)) {
+            throw new BusinessException(400, "仅支持 DOCX 或 PDF 导出");
         }
 
         ResumeVersion version = versionService.requireOwned(userId, resumeId, request.getVersionId());
@@ -215,10 +235,41 @@ public class ResumeService {
             throw new BusinessException(500, "简历内容损坏");
         }
 
-        String filename = sanitizeFilename(resume.getResumeName())
-                + "-v" + version.getVersionNumber() + ".docx";
+        String baseName = sanitizeFilename(resume.getResumeName()) + "-v" + version.getVersionNumber();
+        if ("PDF".equals(format)) {
+            byte[] pdf = pdfExporter.export(content, resume.getResumeName(), version.getVersionNumber());
+            return new ExportFile(pdf, baseName + ".pdf");
+        }
         byte[] bytes = docxExporter.export(content, resume.getResumeName(), version.getVersionNumber());
-        return new ExportFile(bytes, filename);
+        return new ExportFile(bytes, baseName + ".docx");
+    }
+
+    /**
+     * 删除简历：只允许删除当前用户自己的简历。
+     * 若已被投递记录引用则拒绝删除（409），避免投递记录指向不存在的版本；
+     * 未被引用时同时清理该简历的版本、草稿与修改历史。
+     */
+    @Transactional
+    public void delete(Long userId, Long resumeId) {
+        Resume resume = requireOwned(userId, resumeId);
+        List<ResumeVersion> versions = versionMapper.selectList(new LambdaQueryWrapper<ResumeVersion>()
+                .eq(ResumeVersion::getResumeId, resumeId));
+        List<Long> versionIds = versions.stream().map(ResumeVersion::getId).toList();
+        if (!versionIds.isEmpty()) {
+            Long used = applicationMapper.selectCount(new LambdaQueryWrapper<JobApplication>()
+                    .in(JobApplication::getResumeVersionId, versionIds));
+            if (used != null && used > 0) {
+                throw new BusinessException(409, "该简历已被投递记录引用，无法删除");
+            }
+        }
+
+        draftMapper.delete(new LambdaQueryWrapper<ResumeDraft>()
+                .eq(ResumeDraft::getResumeId, resumeId));
+        editHistoryMapper.delete(new LambdaQueryWrapper<ResumeEditHistory>()
+                .eq(ResumeEditHistory::getResumeId, resumeId));
+        versionMapper.delete(new LambdaQueryWrapper<ResumeVersion>()
+                .eq(ResumeVersion::getResumeId, resumeId));
+        resumeMapper.deleteById(resume.getId());
     }
 
     public Resume requireOwned(Long userId, Long resumeId) {
