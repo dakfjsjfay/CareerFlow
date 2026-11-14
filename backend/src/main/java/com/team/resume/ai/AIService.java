@@ -11,6 +11,7 @@ import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
 import com.team.resume.ai.dto.JdParseResult;
 import com.team.resume.ai.dto.Message;
+import com.team.resume.ai.dto.OptimizationReplyResult;
 import com.team.resume.ai.dto.ResumeGenerationResult;
 
 /**
@@ -106,5 +107,54 @@ public class AIService {
                 new Message("user", sourceJson));
         String content = deepSeekClient.completeJson(messages);
         return responseParser.parseResumeGeneration(content);
+    }
+
+    /**
+     * 反向优化：为某项技能差距生成第一轮自然追问（docs/api.md §10）。
+     * 失败时调用方负责降级为确定性追问，这里只向上抛。
+     */
+    public String generateOptimizationQuestion(String targetSkill, String position) {
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.optimizationQuestionPrompt(targetSkill, position)),
+                new Message("user", "请针对目标技能「" + targetSkill + "」发起第一轮追问。"));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseOptimizationQuestion(content);
+    }
+
+    /**
+     * 反向优化：多轮追问。带历史上下文调用模型，抽取本轮新信息并判断是否继续追问。
+     */
+    public OptimizationReplyResult optimizationReply(List<Message> history, String answer,
+                                                     String targetSkill) {
+        List<Message> messages = new ArrayList<>();
+        messages.add(new Message("system", promptTemplate.optimizationReplyPrompt(targetSkill)));
+        messages.addAll(history);
+        messages.add(new Message("user", answer));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseOptimizationReply(content);
+    }
+
+    /**
+     * 投递建议：根据已确认档案事实生成投递话术（docs/api.md §9.2）。
+     * 调用方（MatchAdviceService）负责事实校验与确定性兜底。
+     */
+    public String generateAdvicePitch(String factsJson) {
+        List<Message> messages = List.of(
+                new Message("system", promptTemplate.matchAdvicePrompt()),
+                new Message("user", factsJson));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseAdvicePitch(content);
+    }
+
+    /**
+     * 反向优化：确认时对整段追问对话做一次性抽取（复用建档对话的抽取结构）。
+     */
+    public ChatExtractionResult extractOptimizationInfo(List<Message> history, String targetSkill) {
+        List<Message> messages = new ArrayList<>();
+        messages.add(new Message("system", promptTemplate.optimizationExtractPrompt(targetSkill)));
+        messages.addAll(history);
+        messages.add(new Message("user", "请从以上对话中抽取与「" + targetSkill + "」相关的新信息。"));
+        String content = deepSeekClient.completeJson(messages);
+        return responseParser.parseChatResult(content);
     }
 }

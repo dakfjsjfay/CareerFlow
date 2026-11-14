@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.team.resume.common.PageResult;
 import com.team.resume.common.Result;
+import com.team.resume.matching.dto.AdviceRequest;
 import com.team.resume.matching.dto.AnalyzeRequest;
+import com.team.resume.matching.service.MatchAdviceService;
 import com.team.resume.matching.service.MatchService;
+import com.team.resume.matching.vo.AdviceVO;
 import com.team.resume.matching.vo.MatchAnalyzeVO;
 import com.team.resume.matching.vo.MatchResultVO;
 import com.team.resume.matching.vo.RecommendItemVO;
@@ -24,15 +27,18 @@ import jakarta.validation.Valid;
  * POST /api/match/analyze          分析匹配度（落 match_result + match_detail）
  * GET  /api/match/{id}            匹配详情（归属校验）
  * GET  /api/match/jobs/recommend  岗位推荐（反馈后置规则排序）
+ * POST /api/match/advice          投递建议（匹配度分析 + AI 话术）
  */
 @RestController
 @RequestMapping("/api/match")
 public class MatchController {
 
     private final MatchService matchService;
+    private final MatchAdviceService matchAdviceService;
 
-    public MatchController(MatchService matchService) {
+    public MatchController(MatchService matchService, MatchAdviceService matchAdviceService) {
         this.matchService = matchService;
+        this.matchAdviceService = matchAdviceService;
     }
 
     @PostMapping("/analyze")
@@ -52,5 +58,11 @@ public class MatchController {
                                                          @RequestParam(defaultValue = "1") long page,
                                                          @RequestParam(defaultValue = "10") long size) {
         return Result.ok(matchService.recommend(userId, page, size));
+    }
+
+    @PostMapping("/advice")
+    public Result<AdviceVO> advice(@AuthenticationPrincipal Long userId,
+                                   @Valid @RequestBody AdviceRequest request) {
+        return Result.ok(matchAdviceService.advice(userId, request));
     }
 }

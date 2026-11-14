@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { createSession, listMessages, listSessions, sendMessage, listEvidence, confirmEvidence } =
@@ -12,8 +13,24 @@ const { createSession, listMessages, listSessions, sendMessage, listEvidence, co
     confirmEvidence: vi.fn(),
   }))
 
+const optimizationApi = vi.hoisted(() => ({
+  getOptimizationTask: vi.fn(),
+  replyOptimizationTask: vi.fn(),
+  confirmOptimizationTask: vi.fn(),
+}))
+
 vi.mock('@/api/chat', () => ({ createSession, listMessages, listSessions, sendMessage }))
 vi.mock('@/api/profile', () => ({ listEvidence, confirmEvidence }))
+vi.mock('@/api/optimization', () => optimizationApi)
+
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [
+    { path: '/chat', name: 'Chat', component: { template: '<div />' } },
+    { path: '/resume', name: 'Resume', component: { template: '<div />' } },
+    { path: '/match/:jobId', name: 'Match', component: { template: '<div />' } },
+  ],
+})
 
 import type { EvidenceItem } from '@/api/profile'
 
@@ -45,20 +62,34 @@ function apiResult<T>(data: T) {
 }
 
 const ElDialogStub = {
-  props: ['modelValue'],
-  template: '<div v-if="modelValue"><slot /><slot name="footer" /></div>',
+  props: ['modelValue', 'title'],
+  template:
+    '<div v-if="modelValue"><div class="el-dialog__title">{{ title }}</div><slot /><slot name="footer" /></div>',
 }
 
 function mountPage() {
   return mount(ChatPage, {
     global: {
-      plugins: [ElementPlus],
+      plugins: [ElementPlus, router],
       stubs: {
         DocumentAnalyzer: true,
         ElDialog: ElDialogStub,
       },
     },
   })
+}
+
+const task = {
+  id: 7,
+  jobId: 1,
+  resumeVersionId: 3,
+  chatSessionId: 1,
+  targetSkill: 'Spring Boot',
+  question: '你学习过 Spring Boot 吗？',
+  status: 'WAITING_USER',
+  source: 'JD_GAP_ANALYSIS',
+  createdAt: '2026-11-11T10:00:00',
+  updatedAt: '2026-11-11T10:00:00',
 }
 
 function buttonByText(wrapper: ReturnType<typeof mountPage>, text: string) {
@@ -76,8 +107,9 @@ async function sendMessageFromPage(wrapper: ReturnType<typeof mountPage>) {
 }
 
 describe('Chat page evidence confirmation', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    await router.push('/chat')
     listSessions.mockResolvedValue(apiResult([session]))
     listMessages.mockResolvedValue(apiResult([]))
     listEvidence.mockResolvedValue(apiResult([pendingEvidence]))
@@ -150,5 +182,66 @@ describe('Chat page evidence confirmation', () => {
     await flushPromises()
 
     expect(confirmEvidence).toHaveBeenCalledWith([1], false)
+  })
+
+  it('enters optimization task mode from taskId query and replies via optimization api', async () => {
+    await router.push('/chat?taskId=7')
+    await router.isReady()
+    optimizationApi.getOptimizationTask.mockResolvedValue(apiResult(task))
+    optimizationApi.replyOptimizationTask.mockResolvedValue(
+      apiResult({
+        reply: '好的，能说说你负责的部分吗？',
+        nextQuestion: true,
+        taskStatus: 'WAITING_USER',
+        extractedInfo: {},
+        missingFields: [],
+      }),
+    )
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('反向优化 · Spring Boot')
+    expect(wrapper.find('[data-testid="optimization-banner"]').exists()).toBe(true)
+
+    await sendMessageFromPage(wrapper)
+
+    expect(optimizationApi.replyOptimizationTask).toHaveBeenCalledWith(7, '我叫张三')
+    expect(sendMessage).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('好的，能说说你负责的部分吗？')
+  })
+
+  it('shows confirm button at USER_CONFIRMATION and confirms to regenerate resume', async () => {
+    await router.push('/chat?taskId=7')
+    await router.isReady()
+    optimizationApi.getOptimizationTask.mockResolvedValue(
+      apiResult({ ...task, status: 'USER_CONFIRMATION' }),
+    )
+    optimizationApi.confirmOptimizationTask.mockResolvedValue(
+      apiResult({
+        taskId: 7,
+        taskStatus: 'RESUME_REGENERATED',
+        jobId: 1,
+        resumeId: 1,
+        resumeVersionId: 5,
+        versionNumber: 2,
+        evidenceCount: 2,
+        updatedFields: ['skills', 'project.techStack'],
+      }),
+    )
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const confirmButton = wrapper.find('[data-testid="confirm-task"]')
+    expect(confirmButton.exists()).toBe(true)
+
+    await confirmButton.trigger('click')
+    await flushPromises()
+
+    expect(optimizationApi.confirmOptimizationTask).toHaveBeenCalledWith(7)
+    expect(wrapper.text()).toContain('反向优化完成')
+    expect(wrapper.text()).toContain('v2')
+    expect(wrapper.find('[data-testid="go-rematch"]').exists()).toBe(true)
   })
 })

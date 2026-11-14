@@ -163,48 +163,10 @@ public class EvidenceService {
         Set<String> updatedFields = new LinkedHashSet<>();
 
         for (ProfileEvidence evidence : evidenceList) {
-            if (evidence.getEntityType() == null) {
-                throw new BusinessException(400, "证据类型为空：" + evidence.getId());
-            }
-            switch (evidence.getEntityType()) {
-                case ProfileEvidence.ENTITY_PROFILE -> {
-                    if (ExtractionEvidenceFactory.FIELD_NO_EXPERIENCE
-                            .equals(evidence.getFieldName())) {
-                        // 「无经历」只作为完整度标记，不写 user_profile 字段
-                        updatedFields.add(apiFieldName(evidence.getFieldName()));
-                    } else if (profileDataService.applyProfileField(
-                            profile, evidence.getFieldName(), evidence.getEvidenceContent())) {
-                        updatedFields.add(apiFieldName(evidence.getFieldName()));
-                        profileDirty = true;
-                    }
-                    markProcessed(evidence.getId(), userId,
-                            ProfileEvidence.STATUS_CONFIRMED, profile.getId());
-                }
-                case ProfileEvidence.ENTITY_SKILL -> {
-                    if (profileDataService.addSkill(profile, evidence.getEvidenceContent())) {
-                        updatedFields.add(ExtractionEvidenceFactory.FIELD_SKILLS);
-                        profileDirty = true;
-                    }
-                    markProcessed(evidence.getId(), userId,
-                            ProfileEvidence.STATUS_CONFIRMED, profile.getId());
-                }
-                case ProfileEvidence.ENTITY_PROJECT -> {
-                    ProfileProject project = profileDataService.createProject(
-                            profile.getId(), evidence.getEvidenceContent());
-                    addProjectFields(updatedFields, project);
-                    markProcessed(evidence.getId(), userId,
-                            ProfileEvidence.STATUS_CONFIRMED, project.getId());
-                }
-                case ProfileEvidence.ENTITY_EXPERIENCE -> {
-                    ProfileExperience experience = profileDataService.createExperience(
-                            profile.getId(), evidence.getEvidenceContent());
-                    addExperienceFields(updatedFields, experience);
-                    markProcessed(evidence.getId(), userId,
-                            ProfileEvidence.STATUS_CONFIRMED, experience.getId());
-                }
-                default -> throw new BusinessException(400,
-                        "不支持的证据类型：" + evidence.getEntityType());
-            }
+            ProfileApply applied = applyToProfile(userId, evidence, profile, updatedFields);
+            profileDirty |= applied.profileDirty();
+            markProcessed(evidence.getId(), userId,
+                    ProfileEvidence.STATUS_CONFIRMED, applied.entityId());
             confirmedCount++;
         }
 
@@ -212,6 +174,83 @@ public class EvidenceService {
             userProfileMapper.updateById(profile);
         }
         return new ConfirmEvidenceResult(confirmedCount, List.copyOf(updatedFields));
+    }
+
+    /**
+     * 证据写入档案实体表的公共逻辑：
+     * 按 entity_type 写入 user_profile / profile_project / profile_experience，
+     * 返回证据应回填的 entity_id 与「user_profile 是否需要 update」。
+     * 供确认接口（更新已有 PENDING 行）与反向优化 confirm（插入新 CONFIRMED 行）复用。
+     */
+    private ProfileApply applyToProfile(Long userId, ProfileEvidence evidence,
+                                        UserProfile profile, Set<String> updatedFields) {
+        if (evidence.getEntityType() == null) {
+            throw new BusinessException(400, "证据类型为空：" + evidence.getId());
+        }
+        boolean profileDirty = false;
+        Long entityId;
+        switch (evidence.getEntityType()) {
+            case ProfileEvidence.ENTITY_PROFILE -> {
+                if (ExtractionEvidenceFactory.FIELD_NO_EXPERIENCE
+                        .equals(evidence.getFieldName())) {
+                    // 「无经历」只作为完整度标记，不写 user_profile 字段
+                    updatedFields.add(apiFieldName(evidence.getFieldName()));
+                } else if (profileDataService.applyProfileField(
+                        profile, evidence.getFieldName(), evidence.getEvidenceContent())) {
+                    updatedFields.add(apiFieldName(evidence.getFieldName()));
+                    profileDirty = true;
+                }
+                entityId = profile.getId();
+            }
+            case ProfileEvidence.ENTITY_SKILL -> {
+                if (profileDataService.addSkill(profile, evidence.getEvidenceContent())) {
+                    updatedFields.add(ExtractionEvidenceFactory.FIELD_SKILLS);
+                    profileDirty = true;
+                }
+                entityId = profile.getId();
+            }
+            case ProfileEvidence.ENTITY_PROJECT -> {
+                ProfileProject project = profileDataService.createProject(
+                        profile.getId(), evidence.getEvidenceContent());
+                addProjectFields(updatedFields, project);
+                entityId = project.getId();
+            }
+            case ProfileEvidence.ENTITY_EXPERIENCE -> {
+                ProfileExperience experience = profileDataService.createExperience(
+                        profile.getId(), evidence.getEvidenceContent());
+                addExperienceFields(updatedFields, experience);
+                entityId = experience.getId();
+            }
+            default -> throw new BusinessException(400,
+                    "不支持的证据类型：" + evidence.getEntityType());
+        }
+        return new ProfileApply(entityId, profileDirty);
+    }
+
+    /**
+     * 反向优化 confirm 专用：插入一条 CONFIRMED 证据（写入实体表并回填 entity_id）。
+     * 任务确认本身就是用户确认，因此不需要再经过 PENDING 状态。
+     *
+     * @return user_profile 是否需要 updateById
+     */
+    public boolean insertConfirmed(ProfileEvidence evidence, Long userId,
+                                   UserProfile profile, Set<String> updatedFields) {
+        ProfileApply applied = applyToProfile(userId, evidence, profile, updatedFields);
+        evidence.setConfirmationStatus(ProfileEvidence.STATUS_CONFIRMED);
+        evidence.setEntityId(applied.entityId());
+        evidenceMapper.insert(evidence);
+        return applied.profileDirty();
+    }
+
+    /** 当前用户已存在（PENDING/CONFIRMED）证据的去重键集合，供外部插入前判重。 */
+    public Set<String> existingKeys(Long userId) {
+        return evidenceMapper.selectList(new LambdaQueryWrapper<ProfileEvidence>()
+                        .eq(ProfileEvidence::getUserId, userId)
+                        .in(ProfileEvidence::getConfirmationStatus,
+                                ProfileEvidence.STATUS_PENDING, ProfileEvidence.STATUS_CONFIRMED))
+                .stream()
+                .map(EvidenceService::dedupeKey)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -262,8 +301,12 @@ public class EvidenceService {
     }
 
     /** 同一用户、同一字段、同样内容视为同一条证据。 */
-    private static String dedupeKey(ProfileEvidence evidence) {
+    public static String dedupeKey(ProfileEvidence evidence) {
         return evidence.getEntityType() + "|" + evidence.getFieldName() + "|" + evidence.getEvidenceContent();
+    }
+
+    /** 证据写入档案的结果：证据应回填的 entity_id + user_profile 是否需要更新。 */
+    private record ProfileApply(Long entityId, boolean profileDirty) {
     }
 
     private static void addProjectFields(Set<String> fields, ProfileProject project) {

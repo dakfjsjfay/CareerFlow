@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { FolderOpened, Plus, Promotion } from '@element-plus/icons-vue'
 import {
@@ -10,6 +11,13 @@ import {
   type ChatSession,
 } from '@/api/chat'
 import type { FileAnalysisResult } from '@/api/files'
+import {
+  confirmOptimizationTask,
+  getOptimizationTask,
+  replyOptimizationTask,
+  type OptimizationConfirmResult,
+  type OptimizationTask,
+} from '@/api/optimization'
 import DocumentAnalyzer from '@/components/DocumentAnalyzer.vue'
 import EvidenceConfirmDialog from '@/components/EvidenceConfirmDialog.vue'
 import { useEvidenceConfirm } from '@/composables/useEvidenceConfirm'
@@ -22,6 +30,9 @@ interface UiMessage {
   missingFields?: string[]
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const sessions = ref<ChatSession[]>([])
 const activeSessionId = ref<number | null>(null)
 const messages = ref<UiMessage[]>([])
@@ -32,6 +43,12 @@ const sending = ref(false)
 const messageListRef = ref<HTMLElement>()
 const showAnalyzer = ref(false)
 const lastAnalysis = ref<FileAnalysisResult | null>(null)
+
+// 反向优化任务模式（步骤 3）：从匹配页差距项「追问补充」进入 ?taskId=xx
+const activeTask = ref<OptimizationTask | null>(null)
+const confirming = ref(false)
+const confirmResult = ref<OptimizationConfirmResult | null>(null)
+const showConfirmResult = ref(false)
 
 const {
   visible: evidenceVisible,
@@ -54,6 +71,30 @@ const canSend = computed(
   () => !!activeSessionId.value && input.value.trim().length > 0 && !sending.value,
 )
 const showEmpty = computed(() => !loadingMessages.value && messages.value.length === 0 && !sending.value)
+
+/** 当前会话是否为反向优化任务会话 */
+const isTaskChat = computed(
+  () => !!activeTask.value && activeTask.value.chatSessionId === activeSessionId.value,
+)
+const canConfirmTask = computed(
+  () =>
+    isTaskChat.value &&
+    activeTask.value?.status === 'USER_CONFIRMATION' &&
+    !confirming.value,
+)
+
+function taskStatusText(status: string): string {
+  switch (status) {
+    case 'WAITING_USER':
+      return 'AI 正在等你回答追问'
+    case 'USER_CONFIRMATION':
+      return '信息已足够，点击右侧按钮确认'
+    case 'RESUME_REGENERATED':
+      return '已完成：档案已更新，新简历版本已生成'
+    default:
+      return status
+  }
+}
 
 function errorMessage(error: unknown, fallback: string) {
   const err = error as { response?: { data?: { message?: string } } }
@@ -156,20 +197,40 @@ async function handleSend() {
   await scrollToBottom()
 
   try {
-    const res = await sendMessage(sessionId, content)
-    messages.value.push({
-      id: tempId--,
-      role: 'ASSISTANT',
-      content: res.data.reply,
-      missingFields: res.data.missingFields,
-    })
-    // 首条消息会更新会话标题，刷新列表以便侧栏展示
-    await loadSessionList()
-    // 抽取结果进入待确认证据；证据加载失败不影响本轮消息已落库
-    try {
-      await afterSendEvidence(res.data.extractedInfo)
-    } catch (error) {
-      ElMessage.error(errorMessage(error, '待确认信息加载失败，请稍后重试'))
+    if (isTaskChat.value && activeTask.value) {
+      // 反向优化任务模式：回复 AI 追问（后端组织追问上下文 + 抽取）
+      const res = await replyOptimizationTask(activeTask.value.id, content)
+      messages.value.push({
+        id: tempId--,
+        role: 'ASSISTANT',
+        content: res.data.reply,
+        missingFields: res.data.missingFields,
+      })
+      activeTask.value.status = res.data.taskStatus
+      if (res.data.taskStatus === 'USER_CONFIRMATION') {
+        ElMessage.success('信息已足够，可以确认并生成新简历了')
+      }
+      try {
+        await afterSendEvidence(res.data.extractedInfo)
+      } catch (error) {
+        ElMessage.error(errorMessage(error, '待确认信息加载失败，请稍后重试'))
+      }
+    } else {
+      const res = await sendMessage(sessionId, content)
+      messages.value.push({
+        id: tempId--,
+        role: 'ASSISTANT',
+        content: res.data.reply,
+        missingFields: res.data.missingFields,
+      })
+      // 首条消息会更新会话标题，刷新列表以便侧栏展示
+      await loadSessionList()
+      // 抽取结果进入待确认证据；证据加载失败不影响本轮消息已落库
+      try {
+        await afterSendEvidence(res.data.extractedInfo)
+      } catch (error) {
+        ElMessage.error(errorMessage(error, '待确认信息加载失败，请稍后重试'))
+      }
     }
   } catch (error) {
     // AI 失败时后端不落库，前端同步撤回这条用户消息
@@ -204,10 +265,43 @@ async function handleRejectEvidence(ids: number[]) {
   }
 }
 
+/** 确认补充信息：写档案（证据 CONFIRMED）+ 自动生成新简历版本 */
+async function handleConfirmTask() {
+  if (!activeTask.value || confirming.value) return
+  confirming.value = true
+  try {
+    const res = await confirmOptimizationTask(activeTask.value.id)
+    activeTask.value.status = res.data.taskStatus
+    confirmResult.value = res.data
+    showConfirmResult.value = true
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '确认失败，请稍后重试'))
+  } finally {
+    confirming.value = false
+  }
+}
+
 onMounted(async () => {
   loadingSessions.value = true
   try {
+    // 反向优化入口：加载任务并切到任务关联的追问会话
+    const taskIdParam = route.query.taskId
+    if (taskIdParam) {
+      try {
+        activeTask.value = (await getOptimizationTask(Number(taskIdParam))).data
+      } catch (error) {
+        ElMessage.error(errorMessage(error, '优化任务加载失败'))
+      }
+    }
     await ensureSession()
+    if (activeTask.value?.chatSessionId) {
+      const target = activeTask.value.chatSessionId
+      if (!sessions.value.some((s) => s.id === target)) {
+        await loadSessionList()
+      }
+      activeSessionId.value = target
+      await loadMessages()
+    }
   } catch (error) {
     ElMessage.error(errorMessage(error, '加载对话失败，请确认后端已启动'))
   } finally {
@@ -268,6 +362,35 @@ onMounted(async () => {
         </div>
       </header>
 
+      <div v-if="activeTask && isTaskChat" class="task-banner" data-testid="optimization-banner">
+        <div class="task-info">
+          <el-tag size="small" type="warning" effect="plain">
+            反向优化 · {{ activeTask.targetSkill }}
+          </el-tag>
+          <span class="task-status">{{ taskStatusText(activeTask.status) }}</span>
+        </div>
+        <div class="task-actions">
+          <el-button
+            v-if="canConfirmTask"
+            size="small"
+            type="primary"
+            data-testid="confirm-task"
+            :loading="confirming"
+            @click="handleConfirmTask"
+          >
+            确认补充并生成新简历
+          </el-button>
+          <el-button
+            v-else-if="activeTask.status === 'RESUME_REGENERATED'"
+            size="small"
+            type="primary"
+            @click="router.push(`/match/${activeTask.jobId}`)"
+          >
+            重新匹配看分数
+          </el-button>
+        </div>
+      </div>
+
       <div ref="messageListRef" v-loading="loadingMessages" class="message-list">
         <div v-if="showEmpty" class="chat-empty">
           <div class="empty-title">你好，我是 CareerFlow 求职顾问</div>
@@ -312,7 +435,7 @@ onMounted(async () => {
           type="textarea"
           :rows="3"
           resize="none"
-          placeholder="介绍你的经历，Enter 发送，Shift+Enter 换行"
+          :placeholder="isTaskChat ? '回答 AI 的追问，Enter 发送，Shift+Enter 换行' : '介绍你的经历，Enter 发送，Shift+Enter 换行'"
           :disabled="sending || !activeSessionId"
           @keydown.enter.exact="onEnter"
         />
@@ -362,6 +485,41 @@ onMounted(async () => {
       @confirm="handleConfirmEvidence"
       @reject="handleRejectEvidence"
     />
+
+    <el-dialog v-model="showConfirmResult" title="反向优化完成" width="500px">
+      <div class="confirm-result">
+        <p class="confirm-line">
+          本次确认写入 <strong>{{ confirmResult?.evidenceCount }}</strong> 条补充信息，更新字段：
+        </p>
+        <div class="confirm-fields">
+          <el-tag
+            v-for="field in confirmResult?.updatedFields"
+            :key="field"
+            size="small"
+            type="success"
+            effect="plain"
+          >
+            {{ field }}
+          </el-tag>
+        </div>
+        <p class="confirm-line">
+          已自动生成新简历版本：<strong>v{{ confirmResult?.versionNumber }}</strong>
+          （旧版本完整保留）
+        </p>
+        <p class="confirm-hint">回到匹配分析页重新分析，即可看到分数变化。</p>
+      </div>
+      <template #footer>
+        <el-button @click="showConfirmResult = false">关闭</el-button>
+        <el-button @click="router.push('/resume')">查看简历</el-button>
+        <el-button
+          type="primary"
+          data-testid="go-rematch"
+          @click="router.push(`/match/${confirmResult?.jobId}`)"
+        >
+          重新匹配看分数
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -476,6 +634,49 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.task-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+}
+
+.task-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.task-status {
+  font-size: 13px;
+  color: #92400e;
+}
+
+.task-actions {
+  flex-shrink: 0;
+}
+
+.confirm-result {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.confirm-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.confirm-hint {
+  color: var(--cf-text-secondary);
+  font-size: 13px;
 }
 
 .composer-left {

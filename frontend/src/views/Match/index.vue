@@ -3,7 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getJob, type JobDetail } from '@/api/jobs'
-import { analyzeMatch, type MatchAnalyzeResult } from '@/api/match'
+import { analyzeMatch, getMatchAdvice, type AdviceResult, type MatchAnalyzeResult } from '@/api/match'
+import { createApplication } from '@/api/applications'
+import { createOptimizationTask } from '@/api/optimization'
 import { listResumeVersions, listResumes, type ResumeSummary, type ResumeVersionSummary } from '@/api/resume'
 
 const route = useRoute()
@@ -20,6 +22,10 @@ const selectedVersionId = ref<number | null>(null)
 const loading = ref(false)
 const analyzing = ref(false)
 const result = ref<MatchAnalyzeResult | null>(null)
+
+const advice = ref<AdviceResult | null>(null)
+const adviceLoading = ref(false)
+const applying = ref(false)
 
 function errorMessage(error: unknown, fallback: string): string {
   const err = error as { response?: { data?: { message?: string } } }
@@ -108,9 +114,57 @@ function statusLabel(status: string): string {
   }
 }
 
-function handleFollowUp(skill: string): void {
-  // 步骤 3（反向优化）接入点：将跳转到对话页发起该技能的追问
-  ElMessage.info(`「${skill}」的追问补充将在反向优化模块中开放`)
+async function handleAdvice(): Promise<void> {
+  if (!selectedVersionId.value) {
+    ElMessage.warning('请先选择简历版本')
+    return
+  }
+  adviceLoading.value = true
+  try {
+    advice.value = (
+      await getMatchAdvice({ jobId: jobId.value, resumeVersionId: selectedVersionId.value })
+    ).data
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '投递建议生成失败，请稍后重试'))
+  } finally {
+    adviceLoading.value = false
+  }
+}
+
+async function handleApply(): Promise<void> {
+  if (!selectedVersionId.value) {
+    ElMessage.warning('请先选择简历版本')
+    return
+  }
+  applying.value = true
+  try {
+    await createApplication({ jobId: jobId.value, resumeVersionId: selectedVersionId.value })
+    ElMessage.success('投递成功，已进入投递管理')
+    await router.push('/applications')
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '投递失败，请稍后重试'))
+  } finally {
+    applying.value = false
+  }
+}
+
+async function handleFollowUp(skill: string): Promise<void> {
+  // 步骤 3 反向优化：创建优化任务（后端 AI 生成第一轮追问）→ 进入对话页追问
+  if (!selectedVersionId.value) {
+    ElMessage.warning('请先选择简历版本')
+    return
+  }
+  try {
+    const res = await createOptimizationTask({
+      jobId: jobId.value,
+      resumeVersionId: selectedVersionId.value,
+      targetSkill: skill,
+    })
+    ElMessage.success(`已发起「${skill}」的追问，AI 顾问在对话页等你`)
+    await router.push({ path: '/chat', query: { taskId: String(res.data.id) } })
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '发起追问失败，请稍后重试'))
+  }
 }
 
 onMounted(() => {
@@ -246,6 +300,70 @@ onMounted(() => {
             </el-button>
           </div>
         </div>
+      </el-card>
+
+      <el-card shadow="never" class="advice-card" data-testid="advice-card">
+        <template #header>
+          <div class="card-head">
+            <h3>投递建议</h3>
+            <div class="advice-actions">
+              <el-button
+                size="small"
+                :loading="adviceLoading"
+                data-testid="generate-advice"
+                @click="handleAdvice"
+              >
+                生成投递建议
+              </el-button>
+              <el-button
+                size="small"
+                type="primary"
+                :loading="applying"
+                data-testid="apply-job"
+                @click="handleApply"
+              >
+                一键投递
+              </el-button>
+            </div>
+          </div>
+        </template>
+
+        <div v-if="advice" data-testid="advice-body">
+          <div class="advice-score">
+            当前匹配分
+            <span>{{ advice.matchScore }}</span>
+          </div>
+          <div class="advice-grid">
+            <div class="advice-block">
+              <h4>优势</h4>
+              <p v-for="item in advice.strengths" :key="item" class="advice-line">
+                · {{ item }}
+              </p>
+              <p v-if="advice.strengths.length === 0" class="advice-empty">暂无明显优势项</p>
+            </div>
+            <div class="advice-block">
+              <h4>差距</h4>
+              <p v-for="item in advice.gaps" :key="item" class="advice-line">
+                · {{ item }}
+              </p>
+              <p v-if="advice.gaps.length === 0" class="advice-empty">核心技能已覆盖</p>
+            </div>
+          </div>
+
+          <el-divider content-position="left">AI 投递话术</el-divider>
+          <p class="pitch" data-testid="pitch-message">{{ advice.pitchMessage }}</p>
+          <p class="advice-tip">话术仅使用已确认且有证据的信息，不会编造技能或经历。</p>
+
+          <el-divider content-position="left">改进建议</el-divider>
+          <p v-for="item in advice.suggestions" :key="item" class="advice-line">
+            · {{ item }}
+          </p>
+        </div>
+        <el-empty
+          v-else
+          description="基于已确认档案生成匹配解读、投递话术与改进建议"
+          :image-size="60"
+        />
       </el-card>
     </template>
   </div>
@@ -404,5 +522,70 @@ onMounted(() => {
 
 .detail-actions {
   margin-top: 8px;
+}
+
+.advice-card {
+  margin-top: 16px;
+}
+
+.advice-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.advice-score {
+  font-size: 13px;
+  color: var(--cf-text-secondary);
+}
+
+.advice-score span {
+  margin-left: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cf-primary);
+}
+
+.advice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.advice-block h4 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.advice-line {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--cf-text);
+}
+
+.advice-empty {
+  font-size: 12px;
+  color: var(--cf-text-secondary);
+}
+
+.pitch {
+  background: #f8fafc;
+  border-left: 3px solid var(--cf-primary);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.advice-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--cf-text-secondary);
+}
+
+@media (max-width: 900px) {
+  .advice-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team.resume.ai.dto.ChatExtractionResult;
 import com.team.resume.ai.dto.DocumentAnalysisResult;
 import com.team.resume.ai.dto.JdParseResult;
+import com.team.resume.ai.dto.OptimizationReplyResult;
 import com.team.resume.ai.dto.ResumeGenerationResult;
 import com.team.resume.ai.dto.ResumeGenerationResult.Highlight;
 import com.team.resume.common.BusinessException;
@@ -116,6 +117,39 @@ public class AIResponseParser {
     }
 
     /**
+     * 反向优化追问轮次：reply 必填非空；nextQuestion 缺省为 true（宁可多问一轮，不提前结束）。
+     */
+    public OptimizationReplyResult parseOptimizationReply(String content) {
+        JsonNode root = readJson(content);
+
+        String reply = root.path("reply").asText("").trim();
+        if (reply.isEmpty()) {
+            throw new BusinessException(502, "AI 返回内容不完整，请稍后重试");
+        }
+
+        JsonNode extractedInfo = root.get("extractedInfo");
+        if (extractedInfo == null || !extractedInfo.isObject()) {
+            extractedInfo = objectMapper.createObjectNode();
+        }
+
+        boolean nextQuestion = root.path("nextQuestion").asBoolean(true);
+        return new OptimizationReplyResult(reply, extractedInfo, nextQuestion,
+                readStringList(root, "missingFields"));
+    }
+
+    /**
+     * 反向优化第一轮追问：question 必填非空。
+     */
+    public String parseOptimizationQuestion(String content) {
+        JsonNode root = readJson(content);
+        String question = root.path("question").asText("").trim();
+        if (question.isEmpty()) {
+            throw new BusinessException(502, "AI 未能生成追问，请稍后重试");
+        }
+        return question;
+    }
+
+    /**
      * 简历文案建议：selfEvaluation 允许为空；亮点条目必须带合法的非负 index，
      * 否则整条忽略（不因为模型多输出一条脏数据就让整个生成失败）。
      */
@@ -145,6 +179,18 @@ public class AIResponseParser {
             }
         });
         return result;
+    }
+
+    /**
+     * 投递话术：pitchMessage 必填非空。
+     */
+    public String parseAdvicePitch(String content) {
+        JsonNode root = readJson(content);
+        String pitch = root.path("pitchMessage").asText("").trim();
+        if (pitch.isEmpty()) {
+            throw new BusinessException(502, "AI 未能生成投递话术，请稍后重试");
+        }
+        return pitch;
     }
 
     private JsonNode readJson(String content) {

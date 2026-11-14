@@ -18,12 +18,24 @@ public class PromptTemplate {
     private final String documentAnalyzePrompt;
     private final String resumeGeneratePrompt;
     private final String jdParsePrompt;
+    private final String optimizationQuestionPrompt;
+    private final String optimizationReplyPrompt;
+    private final String optimizationExtractPrompt;
+    private final String matchAdvicePrompt;
 
     public PromptTemplate() {
         this.chatExtractPrompt = read("prompts/chat-extract-prompt.txt");
         this.documentAnalyzePrompt = read("prompts/document-analyze-prompt.txt");
         this.resumeGeneratePrompt = read("prompts/resume-generate-prompt.txt");
         this.jdParsePrompt = read("prompts/jd-parse-prompt.txt");
+        this.optimizationQuestionPrompt = read("prompts/optimization-question-prompt.txt");
+        this.optimizationReplyPrompt = read("prompts/optimization-reply-prompt.txt");
+        this.optimizationExtractPrompt = read("prompts/optimization-extract-prompt.txt");
+        this.matchAdvicePrompt = read("prompts/match-advice-prompt.txt");
+    }
+
+    public String matchAdvicePrompt() {
+        return matchAdvicePrompt;
     }
 
     public String chatExtractPrompt() {
@@ -45,6 +57,20 @@ public class PromptTemplate {
         return documentAnalyzePrompt
                 .replace("{{analysisType}}", analysisType)
                 .replace("{{jobDescription}}", jd);
+    }
+
+    public String optimizationQuestionPrompt(String targetSkill, String position) {
+        return optimizationQuestionPrompt
+                .replace("{{targetSkill}}", targetSkill)
+                .replace("{{position}}", position == null || position.isBlank() ? "未提供" : position.trim());
+    }
+
+    public String optimizationReplyPrompt(String targetSkill) {
+        return optimizationReplyPrompt.replace("{{targetSkill}}", targetSkill);
+    }
+
+    public String optimizationExtractPrompt(String targetSkill) {
+        return optimizationExtractPrompt.replace("{{targetSkill}}", targetSkill);
     }
 
     private static String read(String classpath) {

@@ -9,6 +9,11 @@ const jobApi = vi.hoisted(() => ({
 
 const matchApi = vi.hoisted(() => ({
   analyzeMatch: vi.fn(),
+  getMatchAdvice: vi.fn(),
+}))
+
+const applicationsApi = vi.hoisted(() => ({
+  createApplication: vi.fn(),
 }))
 
 const resumeApi = vi.hoisted(() => ({
@@ -16,9 +21,15 @@ const resumeApi = vi.hoisted(() => ({
   listResumeVersions: vi.fn(),
 }))
 
+const optimizationApi = vi.hoisted(() => ({
+  createOptimizationTask: vi.fn(),
+}))
+
 vi.mock('@/api/jobs', () => jobApi)
 vi.mock('@/api/match', () => matchApi)
 vi.mock('@/api/resume', () => resumeApi)
+vi.mock('@/api/optimization', () => optimizationApi)
+vi.mock('@/api/applications', () => applicationsApi)
 
 import MatchPage from './index.vue'
 
@@ -59,7 +70,9 @@ const router = createRouter({
   history: createMemoryHistory(),
   routes: [
     { path: '/match/:jobId', name: 'Match', component: { template: '<div />' } },
+    { path: '/chat', name: 'Chat', component: { template: '<div />' } },
     { path: '/resume', name: 'Resume', component: { template: '<div />' } },
+    { path: '/applications', name: 'Applications', component: { template: '<div />' } },
   ],
 })
 
@@ -78,6 +91,8 @@ describe('MatchPage', () => {
     Object.values(jobApi).forEach((mock) => mock.mockReset())
     Object.values(matchApi).forEach((mock) => mock.mockReset())
     Object.values(resumeApi).forEach((mock) => mock.mockReset())
+    Object.values(optimizationApi).forEach((mock) => mock.mockReset())
+    Object.values(applicationsApi).forEach((mock) => mock.mockReset())
   })
 
   it('loads job and default version, then analyzes', async () => {
@@ -127,5 +142,89 @@ describe('MatchPage', () => {
 
     expect(wrapper.text()).toContain('还没有简历版本')
     expect(wrapper.find('[data-testid="goto-resume"]').exists()).toBe(true)
+  })
+
+  it('generates application advice with a grounded pitch', async () => {
+    jobApi.getJob.mockResolvedValue({ code: 200, message: 'success', data: job })
+    resumeApi.listResumes.mockResolvedValue({ code: 200, message: 'success', data: [resume] })
+    resumeApi.listResumeVersions.mockResolvedValue({ code: 200, message: 'success', data: versions })
+    matchApi.analyzeMatch.mockResolvedValue({ code: 200, message: 'success', data: analyzeResult })
+    matchApi.getMatchAdvice.mockResolvedValue({
+      code: 200,
+      message: 'success',
+      data: {
+        matchScore: 40,
+        strengths: ['Java 有项目证据'],
+        gaps: ['Spring Boot 无证据'],
+        pitchMessage: '您好，我是软件工程专业学生，做过学生信息管理系统，希望进一步交流。',
+        suggestions: ['建议先补充 Spring Boot 的真实练习经历后再投递'],
+      },
+    })
+
+    const wrapper = await mountPage()
+    await flushPromises()
+    await wrapper.find('[data-testid="analyze"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-testid="generate-advice"]').trigger('click')
+    await flushPromises()
+
+    expect(matchApi.getMatchAdvice).toHaveBeenCalledWith({ jobId: 1, resumeVersionId: 3 })
+    expect(wrapper.find('[data-testid="advice-body"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Java 有项目证据')
+    expect(wrapper.text()).toContain('Spring Boot 无证据')
+    expect(wrapper.find('[data-testid="pitch-message"]').text()).toContain('学生信息管理系统')
+  })
+
+  it('applies to the job with the selected resume version', async () => {
+    jobApi.getJob.mockResolvedValue({ code: 200, message: 'success', data: job })
+    resumeApi.listResumes.mockResolvedValue({ code: 200, message: 'success', data: [resume] })
+    resumeApi.listResumeVersions.mockResolvedValue({ code: 200, message: 'success', data: versions })
+    matchApi.analyzeMatch.mockResolvedValue({ code: 200, message: 'success', data: analyzeResult })
+    applicationsApi.createApplication.mockResolvedValue({
+      code: 200,
+      message: 'success',
+      data: { id: 11 },
+    })
+
+    const wrapper = await mountPage()
+    await flushPromises()
+    await wrapper.find('[data-testid="analyze"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-testid="apply-job"]').trigger('click')
+    await flushPromises()
+
+    expect(applicationsApi.createApplication).toHaveBeenCalledWith({ jobId: 1, resumeVersionId: 3 })
+    expect(router.currentRoute.value.path).toBe('/applications')
+  })
+
+  it('creates an optimization task and navigates to chat when following up a gap', async () => {
+    jobApi.getJob.mockResolvedValue({ code: 200, message: 'success', data: job })
+    resumeApi.listResumes.mockResolvedValue({ code: 200, message: 'success', data: [resume] })
+    resumeApi.listResumeVersions.mockResolvedValue({ code: 200, message: 'success', data: versions })
+    matchApi.analyzeMatch.mockResolvedValue({ code: 200, message: 'success', data: analyzeResult })
+    optimizationApi.createOptimizationTask.mockResolvedValue({
+      code: 200,
+      message: 'success',
+      data: { id: 7, jobId: 1, resumeVersionId: 3, chatSessionId: 9, targetSkill: 'Spring Boot', question: null, status: 'WAITING_USER', source: 'JD_GAP_ANALYSIS', createdAt: null, updatedAt: null },
+    })
+
+    const wrapper = await mountPage()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="analyze"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.findAll('[data-testid="follow-up"]')[0].trigger('click')
+    await flushPromises()
+
+    expect(optimizationApi.createOptimizationTask).toHaveBeenCalledWith({
+      jobId: 1,
+      resumeVersionId: 3,
+      targetSkill: 'Spring Boot',
+    })
+    expect(router.currentRoute.value.path).toBe('/chat')
+    expect(router.currentRoute.value.query.taskId).toBe('7')
   })
 })

@@ -52,6 +52,18 @@ export function getMatchResult(id: number) {
   return request.get(`/match/${id}`) as unknown as Promise<ApiResult<MatchResultDetail>>
 }
 
+export interface AdviceResult {
+  matchScore: number
+  strengths: string[]
+  gaps: string[]
+  pitchMessage: string
+  suggestions: string[]
+}
+
+export function getMatchAdvice(payload: { jobId: number; resumeVersionId: number }) {
+  return request.post('/match/advice', payload) as unknown as Promise<ApiResult<AdviceResult>>
+}
+
 export function recommendJobs(page = 1, size = 10) {
   return request.get('/match/jobs/recommend', { params: { page, size } }) as unknown as Promise<ApiResult<RecommendPage>>
 }

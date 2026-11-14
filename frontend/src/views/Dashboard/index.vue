@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { listFollowUps, type FollowUpList } from '@/api/applications'
 
 const router = useRouter()
+
+const followUps = ref<FollowUpList>({ count: 0, items: [] })
 
 const loopSteps = [
   { step: '①', title: '自然语言对话建档', desc: '多轮对话 · 信息抽取 · 缺失信息追问' },
@@ -10,6 +14,14 @@ const loopSteps = [
   { step: '④', title: 'AI 反向优化', desc: '发现差距 · 追问补充 · 真实经历改写' },
   { step: '⑤', title: '投递管理与反馈', desc: '模拟投递 · 状态追踪 · 主动提醒' },
 ]
+
+onMounted(async () => {
+  try {
+    followUps.value = (await listFollowUps()).data
+  } catch {
+    // 首页提醒失败不阻塞主流程
+  }
+})
 </script>
 
 <template>
@@ -25,6 +37,22 @@ const loopSteps = [
         <el-button size="large" class="hero-btn-plain" @click="router.push('/jobs')">浏览岗位</el-button>
       </div>
     </section>
+
+    <el-card v-if="followUps.count > 0" shadow="never" class="reminder-card" data-testid="follow-up-reminder">
+      <div class="reminder-row">
+        <div>
+          <h3>有 {{ followUps.count }} 条投递需要跟进</h3>
+          <p class="reminder-desc">
+            {{ followUps.items.slice(0, 3).map((item) => item.position).join('、') }}
+            <template v-if="followUps.count > 3"> 等</template>
+            · 超过 3 天未更新状态，建议主动联系 HR。
+          </p>
+        </div>
+        <el-button type="primary" data-testid="goto-applications" @click="router.push('/applications')">
+          去处理
+        </el-button>
+      </div>
+    </el-card>
 
     <section class="loop">
       <h2>求职业务闭环</h2>
@@ -77,6 +105,30 @@ const loopSteps = [
   background: rgba(255, 255, 255, 0.22);
   border-color: rgba(255, 255, 255, 0.6);
   color: #fff;
+}
+
+.reminder-card {
+  margin-top: 20px;
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.reminder-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.reminder-row h3 {
+  font-size: 16px;
+  color: #92400e;
+}
+
+.reminder-desc {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #92400e;
 }
 
 .loop {

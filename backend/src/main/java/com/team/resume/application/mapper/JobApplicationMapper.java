@@ -1,0 +1,10 @@
+package com.team.resume.application.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.team.resume.application.entity.JobApplication;
+
+@Mapper
+public interface JobApplicationMapper extends BaseMapper<JobApplication> {
+}

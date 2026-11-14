@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { getJob, listJobs, parseJob, type JobDetail, type JobSummary } from '@/api/jobs'
 import { recommendJobs, type RecommendItem } from '@/api/match'
+import { FEEDBACK_OPTIONS, submitFeedback, type FeedbackType } from '@/api/feedback'
 
 const router = useRouter()
 
@@ -125,6 +126,15 @@ function goMatchFromRecommend(jobId: number): void {
   router.push(`/match/${jobId}`)
 }
 
+async function handleFeedback(command: unknown, jobId: number): Promise<void> {
+  try {
+    await submitFeedback({ jobId, feedbackType: command as FeedbackType })
+    ElMessage.success('已记录反馈，后续推荐排序会据此调整')
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '反馈提交失败，请稍后重试'))
+  }
+}
+
 onMounted(() => {
   void loadJobs()
 })
@@ -224,6 +234,24 @@ onMounted(() => {
             <el-button size="small" type="primary" plain @click="goMatch(job.id)">
               匹配分析
             </el-button>
+            <el-dropdown
+              trigger="click"
+              data-testid="job-feedback"
+              @command="(cmd: string | number | object) => handleFeedback(cmd, job.id)"
+            >
+              <el-button size="small" class="feedback-button">反馈</el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item
+                    v-for="option in FEEDBACK_OPTIONS"
+                    :key="option.value"
+                    :command="option.value"
+                  >
+                    {{ option.label }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </el-card>
       </div>
@@ -428,6 +456,12 @@ onMounted(() => {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.feedback-button {
+  margin-left: 0;
 }
 
 .pagination-row {

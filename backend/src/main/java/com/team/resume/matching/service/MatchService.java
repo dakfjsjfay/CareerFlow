@@ -1,11 +1,14 @@
 package com.team.resume.matching.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -14,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.team.resume.application.ApplicationStatus;
+import com.team.resume.application.entity.JobApplication;
+import com.team.resume.application.mapper.JobApplicationMapper;
 import com.team.resume.common.BusinessException;
 import com.team.resume.common.PageResult;
 import com.team.resume.job.entity.Job;
@@ -48,8 +54,8 @@ import com.team.resume.resume.mapper.ResumeVersionMapper;
  * 匹配业务（docs/api.md §9）：
  * - analyze：技能矩阵 + 加权评分，落 match_result + match_detail（关联简历版本）
  * - detail：按用户归属校验后返回逐技能详情
- * - recommend：用用户最新简历版本对全部岗位评分，叠加用户反馈后置规则排序
- *   （可解释规则权重，非机器学习；已读率/面试率微调待投递模块数据后接入）
+ * - recommend：用用户最新简历版本对全部岗位评分，叠加用户反馈后置规则
+ *   与同类岗位历史已读率/面试率微调（可解释统计规则，非机器学习）
  */
 @Service
 public class MatchService {
@@ -64,12 +70,14 @@ public class MatchService {
     private final MatchResultMapper matchResultMapper;
     private final MatchDetailMapper matchDetailMapper;
     private final UserFeedbackMapper feedbackMapper;
+    private final JobApplicationMapper applicationMapper;
 
     public MatchService(JobMapper jobMapper, JobRequirementMapper requirementMapper,
                         ProfileDataService profileDataService, ProfileProjectMapper projectMapper,
                         ProfileEvidenceMapper evidenceMapper, ResumeMapper resumeMapper,
                         ResumeVersionMapper resumeVersionMapper, MatchResultMapper matchResultMapper,
-                        MatchDetailMapper matchDetailMapper, UserFeedbackMapper feedbackMapper) {
+                        MatchDetailMapper matchDetailMapper, UserFeedbackMapper feedbackMapper,
+                        JobApplicationMapper applicationMapper) {
         this.jobMapper = jobMapper;
         this.requirementMapper = requirementMapper;
         this.profileDataService = profileDataService;
@@ -80,6 +88,7 @@ public class MatchService {
         this.matchResultMapper = matchResultMapper;
         this.matchDetailMapper = matchDetailMapper;
         this.feedbackMapper = feedbackMapper;
+        this.applicationMapper = applicationMapper;
     }
 
     @Transactional
@@ -183,6 +192,11 @@ public class MatchService {
                 new LambdaQueryWrapper<UserFeedback>().eq(UserFeedback::getUserId, userId));
         FeedbackRules rules = new FeedbackRules(feedbacks, jobs);
 
+        Map<Long, Job> jobById = jobs.stream().collect(Collectors.toMap(Job::getId, j -> j));
+        List<JobApplication> applications = applicationMapper.selectList(
+                new LambdaQueryWrapper<JobApplication>().eq(JobApplication::getUserId, userId));
+        Map<String, HistoryStats> historyByPosition = HistoryStats.group(applications, jobById);
+
         List<RecommendItemVO> items = new ArrayList<>();
         for (Job job : jobs) {
             List<JobRequirement> requirements = requirementMap.getOrDefault(job.getId(), List.of());
@@ -201,15 +215,24 @@ public class MatchService {
             items.add(item);
         }
 
-        // 用户反馈后置规则（可解释权重，非机器学习）
+        // 用户反馈后置规则 + 同类岗位历史反馈统计（可解释权重，非机器学习）
         for (RecommendItemVO item : items) {
+            BigDecimal adjusted = item.getMatchScore();
             BigDecimal factor = rules.factorFor(item);
             if (factor.compareTo(BigDecimal.ONE) < 0) {
-                item.setAdjustedScore(item.getMatchScore().multiply(factor));
+                adjusted = adjusted.multiply(factor);
                 item.getRankReasons().addAll(rules.reasonsFor(item));
-            } else {
-                item.setAdjustedScore(item.getMatchScore());
             }
+
+            HistoryStats stats = historyByPosition.get(normalizePosition(item.getPosition()));
+            if (stats != null) {
+                BigDecimal historyFactor = stats.factor();
+                if (historyFactor.compareTo(BigDecimal.ONE) > 0) {
+                    adjusted = adjusted.multiply(historyFactor);
+                    item.getRankReasons().add(stats.reason());
+                }
+            }
+            item.setAdjustedScore(adjusted);
         }
 
         items.sort(Comparator.comparing(RecommendItemVO::getAdjustedScore,
@@ -287,6 +310,83 @@ public class MatchService {
         vo.setEvidence(detail.getEvidence());
         vo.setSuggestion(detail.getSuggestion());
         return vo;
+    }
+
+    private static String normalizePosition(String position) {
+        if (position == null) {
+            return "";
+        }
+        return position.replaceAll("[\\s\\-_/]", "").toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * 同类岗位历史反馈统计（docs/api.md §9.1 规则 2）：
+     * 以岗位名称精确匹配为「同类」，统计已读率与面试率，给予小幅加权。
+     * 样本为空或没有正面反馈时不调整，保证排序可解释。
+     */
+    private static final class HistoryStats {
+
+        private static final BigDecimal READ_WEIGHT = new BigDecimal("0.10");
+        private static final BigDecimal INTERVIEW_WEIGHT = new BigDecimal("0.15");
+        private static final BigDecimal MAX_FACTOR = new BigDecimal("1.25");
+
+        private int sample;
+        private int read;
+        private int interview;
+
+        static Map<String, HistoryStats> group(List<JobApplication> applications,
+                                               Map<Long, Job> jobById) {
+            Map<String, HistoryStats> result = new HashMap<>();
+            for (JobApplication application : applications) {
+                ApplicationStatus status;
+                try {
+                    status = ApplicationStatus.valueOf(application.getStatus());
+                } catch (RuntimeException e) {
+                    continue;
+                }
+                // 未投递/已撤回/投递失败不参与反馈统计
+                if (status == ApplicationStatus.PENDING
+                        || status == ApplicationStatus.WITHDRAWN
+                        || status == ApplicationStatus.FAILED) {
+                    continue;
+                }
+                Job job = jobById.get(application.getJobId());
+                if (job == null || job.getPosition() == null) {
+                    continue;
+                }
+                HistoryStats stats = result.computeIfAbsent(
+                        normalizePosition(job.getPosition()), key -> new HistoryStats());
+                stats.sample++;
+                if (ApplicationStatus.READ_STATUSES.contains(status)) {
+                    stats.read++;
+                }
+                if (ApplicationStatus.INTERVIEW_STATUSES.contains(status)) {
+                    stats.interview++;
+                }
+            }
+            return result;
+        }
+
+        BigDecimal factor() {
+            if (sample == 0) {
+                return BigDecimal.ONE;
+            }
+            BigDecimal readRate = BigDecimal.valueOf(read)
+                    .divide(BigDecimal.valueOf(sample), 4, RoundingMode.HALF_UP);
+            BigDecimal interviewRate = BigDecimal.valueOf(interview)
+                    .divide(BigDecimal.valueOf(sample), 4, RoundingMode.HALF_UP);
+            BigDecimal factor = BigDecimal.ONE
+                    .add(readRate.multiply(READ_WEIGHT))
+                    .add(interviewRate.multiply(INTERVIEW_WEIGHT));
+            return factor.min(MAX_FACTOR).setScale(4, RoundingMode.HALF_UP);
+        }
+
+        String reason() {
+            long readPercent = Math.round(read * 100.0 / sample);
+            long interviewPercent = Math.round(interview * 100.0 / sample);
+            return "同类岗位历史已读率 " + readPercent + "%、面试率 " + interviewPercent
+                    + "%（样本 " + sample + "），排序小幅上调";
+        }
     }
 
     /**
