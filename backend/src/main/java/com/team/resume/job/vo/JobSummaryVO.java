@@ -1,5 +1,6 @@
 package com.team.resume.job.vo;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import lombok.Data;
@@ -25,6 +26,21 @@ public class JobSummaryVO {
     private String salary;
 
     private String sourceType;
+
+    /** 来源名称，如「企业官网」 */
+    private String sourceName;
+
+    /** 原招聘信息发布时间 */
+    private LocalDateTime publishedAt;
+
+    /** 最近核验时间 */
+    private LocalDateTime verifiedAt;
+
+    /** 有效期截止 */
+    private LocalDateTime validUntil;
+
+    /** 统一展示状态（DEMO/UNVERIFIED/VERIFIED/EXPIRED/CLOSED），前端只认该字段 */
+    private String displayStatus;
 
     private String recruitmentBatch;
 

@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.team.resume.common.PageResult;
 import com.team.resume.common.Result;
 import com.team.resume.job.dto.CreateJobRequest;
+import com.team.resume.job.dto.ImportJobRequest;
 import com.team.resume.job.dto.ParseJdRequest;
+import com.team.resume.job.dto.VerifyJobRequest;
 import com.team.resume.job.service.JobService;
 import com.team.resume.job.vo.JobDetailVO;
 import com.team.resume.job.vo.JobParseVO;
@@ -22,9 +24,11 @@ import jakarta.validation.Valid;
 
 /**
  * 岗位接口（docs/api.md §8）：
- * GET  /api/jobs            列表（分页 + keyword/city/salary 筛选，按可见性过滤）
- * GET  /api/jobs/{id}       详情（含技能要求与 canEdit）
+ * GET  /api/jobs            列表（分页 + keyword/city/salary/来源/可信度筛选，按可见性过滤）
+ * GET  /api/jobs/{id}       详情（含技能要求、可信度信息与 canEdit）
  * POST /api/jobs            新增岗位（普通用户 → 私有；ADMIN → 公共）
+ * POST /api/jobs/import     导入外部岗位（用户粘贴链接或 JD，创建私有 MANUAL 岗位）
+ * POST /api/jobs/{id}/verify 管理员核验岗位（普通用户 403）
  * POST /api/jobs/{id}/parse AI 解析 JD（仅 ADMIN 或岗位创建者）
  * 权限规则见 SecurityConfig：除登录/注册/健康检查外均需 JWT。
  */
@@ -48,9 +52,13 @@ public class JobController {
             @RequestParam(required = false) String salary,
             @RequestParam(required = false) Long companyId,
             @RequestParam(required = false) String recruitmentBatch,
-            @RequestParam(required = false) String recruitmentStatus) {
+            @RequestParam(required = false) String recruitmentStatus,
+            @RequestParam(required = false) String verificationStatus,
+            @RequestParam(required = false) String sourceType,
+            @RequestParam(required = false, defaultValue = "false") boolean onlyVerified) {
         return Result.ok(jobService.list(page, size, keyword, city, salary,
                 companyId, recruitmentBatch, recruitmentStatus,
+                verificationStatus, sourceType, onlyVerified,
                 currentUserId(authentication), isAdmin(authentication)));
     }
 
@@ -72,6 +80,20 @@ public class JobController {
                                     @RequestBody(required = false) ParseJdRequest request) {
         return Result.ok(jobService.parse(id, request == null ? new ParseJdRequest() : request,
                 currentUserId(authentication), isAdmin(authentication)));
+    }
+
+    @PostMapping("/import")
+    public Result<JobSummaryVO> importJob(Authentication authentication,
+                                          @Valid @RequestBody ImportJobRequest request) {
+        return Result.ok(jobService.importJob(request, currentUserId(authentication)));
+    }
+
+    @PostMapping("/{id}/verify")
+    public Result<JobDetailVO> verify(Authentication authentication,
+                                      @PathVariable("id") Long id,
+                                      @Valid @RequestBody VerifyJobRequest request) {
+        return Result.ok(jobService.verify(id, request, currentUserId(authentication),
+                isAdmin(authentication)));
     }
 
     /** JwtAuthFilter 把 userId 放进 principal，这里统一取出 */

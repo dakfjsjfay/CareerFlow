@@ -26,8 +26,11 @@ import com.team.resume.common.BusinessException;
 import com.team.resume.common.GlobalExceptionHandler;
 import com.team.resume.config.SecurityConfig;
 import com.team.resume.job.controller.JobController;
+import com.team.resume.job.dto.ImportJobRequest;
 import com.team.resume.job.dto.ParseJdRequest;
+import com.team.resume.job.dto.VerifyJobRequest;
 import com.team.resume.job.service.JobService;
+import com.team.resume.job.vo.JobDetailVO;
 import com.team.resume.job.vo.JobParseVO;
 import com.team.resume.job.vo.JobSummaryVO;
 
@@ -113,6 +116,51 @@ class JobControllerSecurityTest {
                         .content("{}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobId").value(1));
+    }
+
+    @Test
+    void normalUserCannotVerifyJob() throws Exception {
+        when(jobService.verify(anyLong(), any(VerifyJobRequest.class), anyLong(), eq(false)))
+                .thenThrow(new BusinessException(403, "仅管理员可核验岗位"));
+
+        mockMvc.perform(post("/api/jobs/1/verify")
+                        .header("Authorization", bearer("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"verificationStatus\":\"VERIFIED\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
+    void adminCanVerifyJob() throws Exception {
+        JobDetailVO detail = new JobDetailVO();
+        detail.setId(1L);
+        detail.setDisplayStatus("VERIFIED");
+        when(jobService.verify(anyLong(), any(VerifyJobRequest.class), anyLong(), eq(true)))
+                .thenReturn(detail);
+
+        mockMvc.perform(post("/api/jobs/1/verify")
+                        .header("Authorization", bearer("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"verificationStatus\":\"VERIFIED\",\"sourceName\":\"企业官网\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.displayStatus").value("VERIFIED"));
+    }
+
+    @Test
+    void userCanImportExternalJob() throws Exception {
+        JobSummaryVO summary = new JobSummaryVO();
+        summary.setId(2L);
+        summary.setDisplayStatus("UNVERIFIED");
+        when(jobService.importJob(any(ImportJobRequest.class), eq(1L))).thenReturn(summary);
+
+        mockMvc.perform(post("/api/jobs/import")
+                        .header("Authorization", bearer("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"position\":\"Java 开发实习生\",\"externalUrl\":\"https://example.com/job/2\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(2))
+                .andExpect(jsonPath("$.data.displayStatus").value("UNVERIFIED"));
     }
 
     private String bearer(String role) {

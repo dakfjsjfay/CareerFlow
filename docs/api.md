@@ -564,6 +564,8 @@ AI 输出**不直接写草稿**：先落 `resume_edit_history(PENDING)`，用户
 | /api/jobs/{id} | GET | 岗位详情（含 job_requirement 技能列表、`canEdit`） |
 | /api/jobs | POST | 新增岗位（普通用户创建私有岗位，ADMIN 创建公共岗位） |
 | /api/jobs/{id}/parse | POST | AI 解析 JD 生成技能要求（仅 ADMIN 或岗位创建者） |
+| /api/jobs/import | POST | ⭐ 阶段 1：导入外部岗位（粘贴链接 / JD），创建私有 MANUAL 岗位 |
+| /api/jobs/{id}/verify | POST | ⭐ 阶段 1：管理员核验岗位可信度（普通用户 403） |
 
 ### 8.0 2.0 权限与可见性规则
 
@@ -594,10 +596,62 @@ AI 输出**不直接写草稿**：先落 `resume_edit_history(PENDING)`，用户
 | companyId | long | 否 | ⭐ 阶段 3：按企业库 company 关联筛选 |
 | recruitmentBatch | string | 否 | ⭐ 阶段 3：招聘批次（秋招/春招/实习/社招） |
 | recruitmentStatus | string | 否 | ⭐ 阶段 3：招聘状态（OPEN/CLOSED/SOON） |
+| sourceType | string | 否 | ⭐ 阶段 1：来源类型（DEMO/MANUAL/OFFICIAL/PLATFORM/IMPORT），传 MOCK 等价 DEMO |
+| verificationStatus | string | 否 | ⭐ 阶段 1：可信度（DEMO/UNVERIFIED/VERIFIED/EXPIRED） |
+| onlyVerified | boolean | 否 | ⭐ 阶段 1：仅返回已核实且未过期的岗位 |
 
 示例：`GET /api/jobs?page=1&size=10&keyword=Java&city=深圳&companyId=12&recruitmentBatch=秋招`
 
-### 8.2 企业信息库（companies，阶段 3 新增）
+### 8.2 岗位可信度（阶段 1 新增）
+
+双状态模型：`verification_status`（数据可信度）与 `recruitment_status`（招聘生命周期）相互独立，
+后端统一输出 `displayStatus`，前端只认该字段，不自行推断。
+
+| 优先级 | displayStatus | 条件 | 前端展示 |
+|---|---|---|---|
+| 1 | DEMO | `source_type=DEMO`（兼容 MOCK） | 演示数据（中性灰虚线），并提示「仅用于功能体验」 |
+| 2 | CLOSED | `recruitment_status=CLOSED` | 已关闭 |
+| 3 | EXPIRED | `verification_status=EXPIRED` 或 `valid_until < 今天` | 已过期 |
+| 4 | VERIFIED | `verification_status=VERIFIED` | 已核实 |
+| 5 | UNVERIFIED | 其余 | 待核实 |
+
+列表 / 详情新增返回字段：`sourceName`、`publishedAt`、`verifiedAt`、`validUntil`、`displayStatus`。
+`external_url` 继续作为「原招聘信息链接」唯一字段，不重复建列。
+
+**POST /api/jobs/import** 请求体：
+
+```json
+{
+  "position": "Java 开发实习生",
+  "company": "某公司",
+  "city": "深圳",
+  "salary": "8k-12k",
+  "externalUrl": "https://example.com/job/1",
+  "sourceName": "用户粘贴",
+  "jdContent": "岗位职责……",
+  "parseJd": true
+}
+```
+
+- 创建结果为 `visibility=PRIVATE`、`source_type=MANUAL`、`verification_status=UNVERIFIED`，仅本人可见。
+- `parseJd=true` 且提供 JD 时，导入后立即调用现有 AI 解析生成技能要求。
+- 不爬取招聘平台数据；用户只应导入自己已获得的岗位信息。
+
+**POST /api/jobs/{id}/verify** 请求体（仅 ADMIN，否则 403）：
+
+```json
+{ "verificationStatus": "VERIFIED", "sourceName": "企业官网", "externalUrl": "https://example.com/job/1", "validUntil": "2026-12-31T00:00:00" }
+```
+
+| 规则 | 说明 |
+|---|---|
+| status 取值 | 仅 VERIFIED / UNVERIFIED / EXPIRED，其他 400 |
+| 演示岗位 | `source_type=DEMO` 不可核验，返回 400 |
+| 核实依据 | 标记 VERIFIED 时必须已有 `external_url` 或 `source_name`，否则 400 |
+| 审计 | 成功后写入 `verified_at` 与 `verified_by`；撤回 UNVERIFIED 时清空 |
+
+
+### 8.3 企业信息库（companies，阶段 3 新增）
 
 | 接口 | 方法 | 说明 |
 |---|---|---|

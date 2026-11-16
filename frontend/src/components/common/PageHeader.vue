@@ -1,21 +1,23 @@
 <script setup lang="ts">
 /**
- * 页面统一标题区：标题、描述、右侧操作区。
+ * 页面统一标题区：可选眉标、标题、描述、右侧操作区。
  * 所有一级页面使用，保证字号、间距一致。
  */
 withDefaults(
   defineProps<{
     title: string
     description?: string
+    eyebrow?: string
     bordered?: boolean
   }>(),
-  { description: '', bordered: false },
+  { description: '', eyebrow: '', bordered: false },
 )
 </script>
 
 <template>
   <div class="page-header" :class="{ 'page-header--bordered': bordered }">
     <div class="page-header__text">
+      <p v-if="eyebrow" class="page-header__eyebrow">{{ eyebrow }}</p>
       <h1 class="page-header__title">{{ title }}</h1>
       <p v-if="description" class="page-header__desc">{{ description }}</p>
     </div>
@@ -42,16 +44,27 @@ withDefaults(
   min-width: 0;
 }
 
+.page-header__eyebrow {
+  margin-bottom: var(--cf-space-1);
+  font-size: var(--cf-font-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cf-text-tertiary);
+}
+
 .page-header__title {
   font-size: var(--cf-font-2xl);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
   color: var(--cf-text);
 }
 
 .page-header__desc {
   margin-top: var(--cf-space-1);
   font-size: var(--cf-font-sm);
+  line-height: 1.6;
   color: var(--cf-text-secondary);
 }
 

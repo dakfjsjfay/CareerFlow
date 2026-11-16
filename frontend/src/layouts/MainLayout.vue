@@ -140,7 +140,7 @@ function handleLogout() {
         :collapse-transition="false"
         class="menu"
         background-color="transparent"
-        text-color="#475569"
+        text-color="var(--cf-text-secondary)"
         active-text-color="var(--cf-primary)"
         @select="handleSelect"
       >
@@ -173,7 +173,7 @@ function handleLogout() {
           :default-active="activePath"
           class="menu"
           background-color="transparent"
-          text-color="#475569"
+          text-color="var(--cf-text-secondary)"
           active-text-color="var(--cf-primary)"
           @select="handleSelect"
         >
@@ -243,7 +243,7 @@ function handleLogout() {
 .sidebar {
   width: var(--cf-sidebar-width);
   flex-shrink: 0;
-  background: var(--cf-card-bg);
+  background: var(--cf-surface-muted);
   border-right: 1px solid var(--cf-border);
   display: flex;
   flex-direction: column;
@@ -266,8 +266,8 @@ function handleLogout() {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--cf-primary), var(--cf-primary-light));
+  border-radius: var(--cf-radius-control);
+  background: var(--cf-primary);
   color: #fff;
   font-weight: 700;
   display: flex;
@@ -293,7 +293,7 @@ function handleLogout() {
   padding: var(--cf-space-3) 20px var(--cf-space-1);
   font-size: var(--cf-font-xs);
   color: var(--cf-text-tertiary);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
 .menu :deep(.el-menu-item) {

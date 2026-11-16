@@ -191,9 +191,15 @@ erDiagram
 | city | VARCHAR(100) | 工作城市 |
 | salary | VARCHAR(100) | 薪资（文本，如 "6k-10k"；精确数值过滤是已知限制，见 decision-record） |
 | jd_content | TEXT | 原始 JD 全文 |
-| source_type | VARCHAR(30) | MOCK（内置模拟）/ MANUAL（手动录入）/ OFFICIAL（官方整理）/ PLATFORM（平台录入） |
+| source_type | VARCHAR(30) | ⭐ 阶段 1：DEMO（演示，不可当作真实招聘）/ MANUAL（手动录入或用户导入）/ OFFICIAL（企业官方整理）/ PLATFORM（授权平台）/ IMPORT（批量导入）；兼容旧值 MOCK |
+| source_name | VARCHAR(100) NULL | ⭐ 阶段 1：来源名称，如「企业官网」「用户粘贴」 |
+| published_at | DATETIME NULL | ⭐ 阶段 1：原招聘信息发布时间 |
 | recruitment_batch | VARCHAR(30) NULL | ⭐ 阶段 3 新增：招聘批次（秋招/春招/实习/社招） |
 | recruitment_status | VARCHAR(30) | ⭐ 阶段 3 新增：OPEN 开放 / CLOSED 已结束 / SOON 即将开始，默认 OPEN |
+| verification_status | VARCHAR(20) NOT NULL | ⭐ 阶段 1：DEMO / UNVERIFIED / VERIFIED / EXPIRED，默认 UNVERIFIED |
+| verified_at | DATETIME NULL | ⭐ 阶段 1：最近核验时间 |
+| verified_by | BIGINT NULL | ⭐ 阶段 1：核验管理员 user_id（审计） |
+| valid_until | DATETIME NULL | ⭐ 阶段 1：招聘信息有效期截止，过期后展示为已过期 |
 | created_by | BIGINT NULL | ⭐ 2.0 新增：创建者用户 ID；系统/种子数据为空 |
 | visibility | VARCHAR(20) | ⭐ 2.0 新增：PUBLIC / PRIVATE，默认 PUBLIC |
 | external_url | VARCHAR(500) | 外部招聘页面跳转链接（可空） |
@@ -447,6 +453,7 @@ status ∈ {APPLIED, READ, INTERVIEW_INVITED, NO_RESPONSE}
 |---|---|---|
 | `sys_user` | `role` | USER / ADMIN，默认 USER |
 | `job` | `company_id`、`created_by`、`visibility` | 企业关联与私有岗位可见性 |
+| `job` | `source_name`、`published_at`、`verification_status`、`verified_at`、`verified_by`、`valid_until` | ⭐ 阶段 1 岗位来源追溯与可信度（`external_url` 复用为原招聘信息链接） |
 | `resume` | `source_document_asset_id` | 原始简历文件（第一阶段保留文件 + 新版本导出） |
 | `job_application` | `channel`、`applied_url` | 投递渠道记录，不支持自动投递 |
 | `optimization_task` | `user_id` | 直接归属，避免只靠对话间接追溯 |

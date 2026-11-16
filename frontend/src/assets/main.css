@@ -1,27 +1,33 @@
-/* CareerFlow-AI 设计令牌（docs/2.0/ui-redesign.md §6.1） */
+/* CareerFlow-AI 设计令牌（docs/2.0/ui-redesign.md §6.1，2.0 阶段0：暖灰体系） */
 :root {
-  /* 主色 */
+  /* 主色（克制品牌蓝，仅用于动作、选中、关键数据） */
   --cf-primary: #2563eb;
   --cf-primary-light: #3b82f6;
   --cf-primary-dark: #1d4ed8;
-  --cf-primary-soft: #eff6ff;
-  --cf-bg: #f5f7fb;
-  --cf-text: #1f2937;
-  --cf-text-secondary: #6b7280;
-  --cf-text-tertiary: #9ca3af;
-  --cf-card-bg: #ffffff;
-  --cf-border: #e5e7eb;
-  --cf-border-strong: #d1d5db;
+  --cf-primary-soft: #edf2ff;
+
+  /* 中性色（暖灰白） */
+  --cf-bg: #f7f5f2;
+  --cf-surface-muted: #fbfaf8;
+  --cf-surface-strong: #f2efe9;
+  --cf-card-bg: #fffefc;
+  --cf-text: #1d2129;
+  --cf-text-secondary: #5c6470;
+  --cf-text-tertiary: #8d939c;
+  --cf-border: #e7e3dc;
+  --cf-border-strong: #d6d0c6;
 
   /* 状态色 */
-  --cf-success: #16a34a;
-  --cf-success-soft: #ecfdf5;
-  --cf-warning: #d97706;
-  --cf-warning-soft: #fffbeb;
-  --cf-danger: #dc2626;
-  --cf-danger-soft: #fef2f2;
-  --cf-info: #0891b2;
-  --cf-info-soft: #ecfeff;
+  --cf-success: #15803d;
+  --cf-success-soft: #eaf5ee;
+  --cf-warning: #b45309;
+  --cf-warning-soft: #fdf3e3;
+  --cf-danger: #c0392b;
+  --cf-danger-soft: #fbeceb;
+  --cf-info: #0e7490;
+  --cf-info-soft: #e9f5f8;
+  --cf-neutral: #565f6b;
+  --cf-neutral-soft: #f0eee9;
 
   /* 字号 */
   --cf-font-xs: 12px;
@@ -40,30 +46,44 @@
   --cf-space-5: 24px;
   --cf-space-6: 32px;
   --cf-space-7: 48px;
+  --cf-space-8: 64px;
 
   /* 圆角 */
   --cf-radius-sm: 6px;
   --cf-radius-md: 10px;
   --cf-radius-lg: 16px;
+  --cf-radius-control: 8px;
 
-  /* 阴影 */
-  --cf-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --cf-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
-  --cf-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  /* 阴影（仅浮层与主指标卡使用） */
+  --cf-shadow-sm: 0 1px 2px rgba(29, 33, 41, 0.05);
+  --cf-shadow-md: 0 4px 16px rgba(29, 33, 41, 0.08);
+  --cf-shadow-lg: 0 12px 32px rgba(29, 33, 41, 0.12);
 
   /* 布局 */
   --cf-sidebar-width: 232px;
   --cf-sidebar-collapsed-width: 64px;
   --cf-header-height: 60px;
-  --cf-content-max: 1440px;
+  --cf-content-max: 1280px;
 
-  /* Element Plus 主色对齐 */
+  /* Element Plus 主题对齐 */
   --el-color-primary: var(--cf-primary);
   --el-color-primary-light-3: var(--cf-primary-light);
   --el-color-primary-dark-2: var(--cf-primary-dark);
-  --el-border-radius-base: var(--cf-radius-sm);
+  --el-color-success: var(--cf-success);
+  --el-color-warning: var(--cf-warning);
+  --el-color-danger: var(--cf-danger);
+  --el-color-error: var(--cf-danger);
+  --el-color-info: var(--cf-neutral);
+  --el-border-radius-base: var(--cf-radius-control);
   --el-text-color-primary: var(--cf-text);
   --el-text-color-regular: var(--cf-text-secondary);
+  --el-text-color-secondary: var(--cf-text-tertiary);
+  --el-border-color: var(--cf-border);
+  --el-border-color-light: var(--cf-border);
+  --el-border-color-lighter: var(--cf-border);
+  --el-bg-color: var(--cf-card-bg);
+  --el-fill-color-blank: var(--cf-card-bg);
+  --el-fill-color-light: var(--cf-surface-muted);
 }
 
 * {
@@ -73,16 +93,26 @@
 }
 
 body {
-  font-family: 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
   background: var(--cf-bg);
   color: var(--cf-text);
   font-size: var(--cf-font-base);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
   text-decoration: none;
   color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--cf-text);
 }
 
 /* 通用页面容器 */
@@ -98,8 +128,7 @@ a {
 .cf-card {
   background: var(--cf-card-bg);
   border: 1px solid var(--cf-border);
-  border-radius: var(--cf-radius-lg);
-  box-shadow: var(--cf-shadow-sm);
+  border-radius: var(--cf-radius-md);
   padding: var(--cf-space-5);
 }
 
@@ -107,15 +136,42 @@ a {
   box-shadow: none;
 }
 
+.cf-card--raised {
+  box-shadow: var(--cf-shadow-sm);
+}
+
+/* 区块：标题 + 内容，用分隔线而不是大卡片堆叠 */
 .cf-section-title {
   font-size: var(--cf-font-lg);
   font-weight: 600;
   color: var(--cf-text);
 }
 
+.cf-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cf-space-3);
+  padding-bottom: var(--cf-space-3);
+  border-bottom: 1px solid var(--cf-border);
+}
+
+.cf-eyebrow {
+  font-size: var(--cf-font-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cf-text-tertiary);
+}
+
 .cf-muted {
   color: var(--cf-text-secondary);
   font-size: var(--cf-font-sm);
+}
+
+.cf-note {
+  color: var(--cf-text-tertiary);
+  font-size: var(--cf-font-xs);
 }
 
 .cf-row {
@@ -131,9 +187,75 @@ a {
   gap: var(--cf-space-3);
 }
 
+.cf-divider {
+  height: 1px;
+  background: var(--cf-border);
+  border: none;
+}
+
+/* 列表范式：紧凑行 + 细分隔线，替代重复卡片 */
+.cf-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cf-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-space-3);
+  padding: var(--cf-space-3) var(--cf-space-2);
+  border-bottom: 1px solid var(--cf-border);
+  transition: background 0.15s ease;
+}
+
+.cf-list-item:last-child {
+  border-bottom: none;
+}
+
+.cf-list-item:hover {
+  background: var(--cf-surface-muted);
+}
+
+.cf-list-item--active {
+  background: var(--cf-primary-soft);
+}
+
+/* 基础控件统一高度 */
+.el-button {
+  font-weight: 500;
+}
+
+.el-button:not(.is-text):not(.is-link) {
+  height: 34px;
+}
+
+.el-input__wrapper,
+.el-select__wrapper {
+  border-radius: var(--cf-radius-control);
+}
+
+.el-textarea__inner {
+  border-radius: var(--cf-radius-control);
+}
+
+.el-card {
+  border-radius: var(--cf-radius-md);
+  border-color: var(--cf-border);
+}
+
+.el-tag {
+  border-radius: var(--cf-radius-sm);
+}
+
+/* 表格：暖灰表头 + 细边框 */
+.el-table th.el-table__cell {
+  background: var(--cf-surface-muted);
+  color: var(--cf-text-secondary);
+  font-weight: 600;
+}
+
 @media (max-width: 1023px) {
   .cf-card {
     padding: var(--cf-space-4);
-    border-radius: var(--cf-radius-md);
   }
 }

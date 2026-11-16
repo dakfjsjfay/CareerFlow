@@ -36,18 +36,20 @@ const emit = defineEmits<{ action: [] }>()
 }
 
 .empty-state__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--cf-primary-soft);
-  color: var(--cf-primary);
-  font-size: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--cf-radius-md);
+  background: var(--cf-surface-muted);
+  border: 1px solid var(--cf-border);
+  color: var(--cf-text-tertiary);
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .empty-state__desc {
-  font-size: var(--cf-font-base);
+  font-size: var(--cf-font-sm);
+  color: var(--cf-text-secondary);
 }
 </style>

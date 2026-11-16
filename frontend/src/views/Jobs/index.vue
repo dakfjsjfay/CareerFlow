@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
-import { getJob, listJobs, parseJob, type JobDetail, type JobSummary } from '@/api/jobs'
+import { Search, Upload } from '@element-plus/icons-vue'
+import {
+  getJob,
+  importJob,
+  listJobs,
+  parseJob,
+  verifyJob,
+  type JobDetail,
+  type JobSummary,
+} from '@/api/jobs'
 import { recommendJobs, type RecommendItem } from '@/api/match'
 import { FEEDBACK_OPTIONS, submitFeedback, type FeedbackType } from '@/api/feedback'
+import StatusTag from '@/components/common/StatusTag.vue'
+import SourceBadge from '@/components/common/SourceBadge.vue'
+import TrustPanel from '@/components/common/TrustPanel.vue'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const recommendVisible = ref(false)
 const recommendLoading = ref(false)
@@ -17,6 +30,8 @@ const filters = reactive({
   keyword: '',
   city: '',
   salary: '',
+  sourceType: '',
+  verificationStatus: '',
 })
 
 const jobs = ref<JobSummary[]>([])
@@ -29,6 +44,21 @@ const drawerVisible = ref(false)
 const drawerLoading = ref(false)
 const drawerJob = ref<JobDetail | null>(null)
 const parsing = ref(false)
+
+// 右侧匹配摘要：选中岗位 + 详情（来源链接、技能要求）+ 推荐评分
+const selectedJobId = ref<number | null>(null)
+const selectedDetail = ref<JobDetail | null>(null)
+const summaryLoading = ref(false)
+
+const selectedJob = computed(
+  () => jobs.value.find((job) => job.id === selectedJobId.value) ?? null,
+)
+const selectedRecommend = computed(
+  () => recommendItems.value.find((item) => item.jobId === selectedJobId.value) ?? null,
+)
+const selectedSkills = computed(
+  () => selectedDetail.value?.topSkills ?? selectedJob.value?.topSkills ?? [],
+)
 
 function errorMessage(error: unknown, fallback: string): string {
   const err = error as { response?: { data?: { message?: string } } }
@@ -44,13 +74,50 @@ async function loadJobs(): Promise<void> {
       keyword: filters.keyword.trim() || undefined,
       city: filters.city.trim() || undefined,
       salary: filters.salary.trim() || undefined,
+      sourceType: filters.sourceType || undefined,
+      verificationStatus: filters.verificationStatus || undefined,
     })
     jobs.value = res.data.items
     total.value = res.data.total
+    if (!jobs.value.some((job) => job.id === selectedJobId.value)) {
+      selectedJobId.value = null
+      selectedDetail.value = null
+      const first = jobs.value[0]
+      if (first) {
+        void selectJob(first)
+      }
+    }
   } catch (error) {
     ElMessage.error(errorMessage(error, '岗位加载失败，请稍后重试'))
   } finally {
     loading.value = false
+  }
+}
+
+async function selectJob(job: JobSummary): Promise<void> {
+  if (selectedJobId.value === job.id) return
+  selectedJobId.value = job.id
+  selectedDetail.value = null
+  summaryLoading.value = true
+  try {
+    const res = await getJob(job.id)
+    if (selectedJobId.value === job.id) {
+      selectedDetail.value = res.data
+    }
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '岗位详情加载失败'))
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
+/** 推荐评分依赖最新简历版本，失败时摘要只展示岗位自身信息，不打断浏览 */
+async function loadRecommendedScores(): Promise<void> {
+  try {
+    const res = await recommendJobs(1, 50)
+    recommendItems.value = res.data.items
+  } catch {
+    recommendItems.value = []
   }
 }
 
@@ -63,6 +130,8 @@ function handleReset(): void {
   filters.keyword = ''
   filters.city = ''
   filters.salary = ''
+  filters.sourceType = ''
+  filters.verificationStatus = ''
   handleSearch()
 }
 
@@ -108,30 +177,75 @@ function goCompany(companyId: number | null): void {
   }
 }
 
-function sourceLabel(sourceType: string): string {
-  if (sourceType === 'MOCK') return '内置'
-  if (sourceType === 'OFFICIAL') return '官方'
-  if (sourceType === 'PLATFORM') return '平台'
-  return '手动'
+const verifyingStatus = ref('')
+
+async function handleVerify(status: 'VERIFIED' | 'EXPIRED' | 'UNVERIFIED'): Promise<void> {
+  if (!drawerJob.value) return
+  verifyingStatus.value = status
+  try {
+    const res = await verifyJob(drawerJob.value.id, { verificationStatus: status })
+    drawerJob.value = res.data
+    ElMessage.success('核验状态已更新')
+    await loadJobs()
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '核验失败，请稍后重试'))
+  } finally {
+    verifyingStatus.value = ''
+  }
 }
 
-function sourceTagType(sourceType: string): 'info' | 'success' | 'warning' | 'primary' {
-  if (sourceType === 'MOCK') return 'info'
-  if (sourceType === 'OFFICIAL') return 'success'
-  if (sourceType === 'PLATFORM') return 'warning'
-  return 'info'
+const importVisible = ref(false)
+const importLoading = ref(false)
+const importForm = reactive({
+  position: '',
+  company: '',
+  city: '',
+  salary: '',
+  externalUrl: '',
+  sourceName: '',
+  jdContent: '',
+  parseJd: true,
+})
+
+function resetImportForm(): void {
+  importForm.position = ''
+  importForm.company = ''
+  importForm.city = ''
+  importForm.salary = ''
+  importForm.externalUrl = ''
+  importForm.sourceName = ''
+  importForm.jdContent = ''
+  importForm.parseJd = true
 }
 
-function statusLabel(status: string | null): string {
-  if (status === 'CLOSED') return '已结束'
-  if (status === 'SOON') return '即将开始'
-  return '招聘中'
-}
-
-function statusTagType(status: string | null): 'success' | 'warning' | 'info' {
-  if (status === 'CLOSED') return 'info'
-  if (status === 'SOON') return 'warning'
-  return 'success'
+async function submitImport(): Promise<void> {
+  if (!importForm.position.trim()) {
+    ElMessage.warning('请填写岗位名称')
+    return
+  }
+  importLoading.value = true
+  try {
+    const res = await importJob({
+      position: importForm.position.trim(),
+      company: importForm.company.trim() || undefined,
+      city: importForm.city.trim() || undefined,
+      salary: importForm.salary.trim() || undefined,
+      externalUrl: importForm.externalUrl.trim() || undefined,
+      sourceName: importForm.sourceName.trim() || undefined,
+      jdContent: importForm.jdContent.trim() || undefined,
+      parseJd: importForm.parseJd && Boolean(importForm.jdContent.trim()),
+    })
+    ElMessage.success('岗位已导入（私有，仅本人可见）')
+    importVisible.value = false
+    resetImportForm()
+    page.value = 1
+    await loadJobs()
+    await openDetail(res.data.id)
+  } catch (error) {
+    ElMessage.error(errorMessage(error, '导入失败，请稍后重试'))
+  } finally {
+    importLoading.value = false
+  }
 }
 
 function openExternal(url: string | null): void {
@@ -169,6 +283,7 @@ async function handleFeedback(command: unknown, jobId: number): Promise<void> {
 
 onMounted(() => {
   void loadJobs()
+  void loadRecommendedScores()
 })
 </script>
 
@@ -208,6 +323,31 @@ onMounted(() => {
           class="search-input"
           @keyup.enter="handleSearch"
         />
+        <el-select
+          v-model="filters.sourceType"
+          data-testid="jobs-source"
+          placeholder="来源类型"
+          clearable
+          class="search-select"
+        >
+          <el-option label="演示数据" value="DEMO" />
+          <el-option label="企业官方" value="OFFICIAL" />
+          <el-option label="手动录入" value="MANUAL" />
+          <el-option label="平台数据" value="PLATFORM" />
+          <el-option label="批量导入" value="IMPORT" />
+        </el-select>
+        <el-select
+          v-model="filters.verificationStatus"
+          data-testid="jobs-verification"
+          placeholder="可信度"
+          clearable
+          class="search-select"
+        >
+          <el-option label="演示数据" value="DEMO" />
+          <el-option label="待核实" value="UNVERIFIED" />
+          <el-option label="已核实" value="VERIFIED" />
+          <el-option label="已过期" value="EXPIRED" />
+        </el-select>
         <el-button type="primary" :icon="Search" data-testid="jobs-search" @click="handleSearch">
           搜索
         </el-button>
@@ -215,108 +355,193 @@ onMounted(() => {
         <el-button type="primary" plain data-testid="jobs-recommend" @click="openRecommend">
           智能推荐
         </el-button>
+        <el-button :icon="Upload" data-testid="jobs-import" @click="importVisible = true">
+          导入外部岗位
+        </el-button>
       </div>
     </el-card>
 
-    <div v-loading="loading" class="jobs-body">
-      <el-empty v-if="!loading && jobs.length === 0" description="没有找到符合条件的岗位" />
+    <div class="jobs-layout">
+      <section v-loading="loading" class="jobs-list-pane">
+        <el-empty v-if="!loading && jobs.length === 0" description="没有找到符合条件的岗位" />
 
-      <div v-else class="job-grid">
-        <el-card
-          v-for="job in jobs"
-          :key="job.id"
-          shadow="hover"
-          class="job-card"
-          data-testid="job-card"
-        >
-          <div class="job-card-head">
-            <div>
+        <div v-else class="job-list">
+          <article
+            v-for="job in jobs"
+            :key="job.id"
+            class="job-row"
+            :class="{ 'job-row--active': job.id === selectedJobId }"
+            data-testid="job-card"
+            @click="selectJob(job)"
+          >
+            <div class="job-row-main">
+              <div class="job-row-head">
+                <h3 class="job-position">{{ job.position }}</h3>
+                <div class="job-tag-group">
+                  <StatusTag :status="job.displayStatus" />
+                  <el-tag v-if="job.recruitmentBatch" size="small" effect="plain">
+                    {{ job.recruitmentBatch }}
+                  </el-tag>
+                </div>
+              </div>
+
               <p
                 class="job-company"
                 :class="{ 'job-company--link': job.companyId }"
-                @click="goCompany(job.companyId)"
+                @click.stop="goCompany(job.companyId)"
               >
                 {{ job.company || '未注明公司' }}
               </p>
-              <h3 class="job-position">{{ job.position }}</h3>
+
+              <div class="job-meta">
+                <span v-if="job.city">{{ job.city }}</span>
+                <span v-if="job.salary">{{ job.salary }}</span>
+                <span>{{ job.requirementCount }} 项技能要求</span>
+              </div>
+
+              <div class="job-source-row">
+                <SourceBadge :source-type="job.sourceType" :source-name="job.sourceName" />
+                <span v-if="job.displayStatus === 'DEMO'" class="demo-hint">
+                  演示数据，仅用于功能体验
+                </span>
+              </div>
+
+              <div class="job-skills">
+                <el-tag
+                  v-for="skill in job.topSkills"
+                  :key="skill"
+                  size="small"
+                  effect="plain"
+                  type="primary"
+                  class="skill-tag"
+                >
+                  {{ skill }}
+                </el-tag>
+                <span v-if="job.topSkills.length === 0" class="no-skills">尚未解析技能要求</span>
+              </div>
             </div>
-            <div class="job-tag-group">
-              <el-tag size="small" :type="sourceTagType(job.sourceType)">
-                {{ sourceLabel(job.sourceType) }}
-              </el-tag>
-              <el-tag v-if="job.recruitmentBatch" size="small" effect="plain">
-                {{ job.recruitmentBatch }}
-              </el-tag>
-              <el-tag
-                v-if="job.recruitmentStatus"
-                size="small"
-                :type="statusTagType(job.recruitmentStatus)"
-                effect="plain"
+
+            <div class="job-row-actions" @click.stop>
+              <el-button size="small" data-testid="job-open" @click="openDetail(job.id)">
+                查看详情
+              </el-button>
+              <el-button size="small" type="primary" plain @click="goMatch(job.id)">
+                匹配分析
+              </el-button>
+              <el-dropdown
+                trigger="click"
+                data-testid="job-feedback"
+                @command="(cmd: string | number | object) => handleFeedback(cmd, job.id)"
               >
-                {{ statusLabel(job.recruitmentStatus) }}
+                <el-button size="small" class="feedback-button">反馈</el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item
+                      v-for="option in FEEDBACK_OPTIONS"
+                      :key="option.value"
+                      :command="option.value"
+                    >
+                      {{ option.label }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </article>
+        </div>
+
+        <div v-if="total > size" class="pagination-row">
+          <el-pagination
+            data-testid="jobs-pagination"
+            layout="prev, pager, next, total"
+            :total="total"
+            :page-size="size"
+            :current-page="page"
+            @current-change="onPageChange"
+          />
+        </div>
+      </section>
+
+      <aside v-loading="summaryLoading" class="jobs-summary" data-testid="jobs-summary">
+        <template v-if="selectedJob">
+          <div class="summary-head">
+            <SourceBadge :source-type="selectedJob.sourceType" :source-name="selectedJob.sourceName" />
+            <StatusTag :status="selectedJob.displayStatus" />
+          </div>
+
+          <h3 class="summary-position">{{ selectedJob.position }}</h3>
+          <p class="summary-company">{{ selectedJob.company || '未注明公司' }}</p>
+          <div class="job-meta">
+            <span v-if="selectedJob.city">{{ selectedJob.city }}</span>
+            <span v-if="selectedJob.salary">{{ selectedJob.salary }}</span>
+            <span v-if="selectedJob.recruitmentBatch">{{ selectedJob.recruitmentBatch }}</span>
+          </div>
+
+          <p v-if="selectedJob.displayStatus === 'DEMO'" class="summary-demo">
+            演示数据，仅用于功能体验，不代表真实在招职位。
+          </p>
+
+          <div class="summary-score">
+            <template v-if="selectedRecommend">
+              <div class="summary-score__row">
+                <span class="summary-score__value">{{ selectedRecommend.matchScore }}</span>
+                <span class="summary-score__unit">/ 100 匹配度</span>
+              </div>
+              <ul class="summary-reasons">
+                <li v-for="reason in selectedRecommend.rankReasons" :key="reason">{{ reason }}</li>
+              </ul>
+            </template>
+            <p v-else class="cf-note">
+              暂无匹配度：先在简历中心生成简历版本，再回到这里查看匹配评分与推荐理由。
+            </p>
+          </div>
+
+          <div class="summary-block">
+            <span class="cf-eyebrow">岗位技能要求</span>
+            <div class="job-skills">
+              <el-tag
+                v-for="skill in selectedSkills"
+                :key="skill"
+                size="small"
+                effect="plain"
+                type="primary"
+                class="skill-tag"
+              >
+                {{ skill }}
               </el-tag>
+              <span v-if="selectedSkills.length === 0" class="no-skills">尚未解析技能要求</span>
             </div>
           </div>
 
-          <div class="job-meta">
-            <span v-if="job.city">📍 {{ job.city }}</span>
-            <span v-if="job.salary">💰 {{ job.salary }}</span>
-            <span>📋 {{ job.requirementCount }} 项技能要求</span>
-          </div>
+          <TrustPanel
+            v-if="selectedDetail"
+            class="summary-trust"
+            :display-status="selectedDetail.displayStatus"
+            :source-type="selectedDetail.sourceType"
+            :source-name="selectedDetail.sourceName"
+            :published-at="selectedDetail.publishedAt"
+            :verified-at="selectedDetail.verifiedAt"
+            :valid-until="selectedDetail.validUntil"
+            :external-url="selectedDetail.externalUrl"
+          />
 
-          <div class="job-skills">
-            <el-tag
-              v-for="skill in job.topSkills"
-              :key="skill"
-              size="small"
-              effect="plain"
-              type="primary"
-              class="skill-tag"
+          <div class="summary-actions">
+            <el-button type="primary" @click="goMatch(selectedJob.id)">匹配分析</el-button>
+            <el-button @click="openDetail(selectedJob.id)">查看详情</el-button>
+            <a
+              v-if="selectedDetail?.externalUrl"
+              class="summary-link"
+              :href="selectedDetail.externalUrl"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {{ skill }}
-            </el-tag>
-            <span v-if="job.topSkills.length === 0" class="no-skills">尚未解析技能要求</span>
+              原招聘信息
+            </a>
           </div>
+        </template>
 
-          <div class="job-card-actions">
-            <el-button size="small" data-testid="job-open" @click="openDetail(job.id)">
-              查看详情
-            </el-button>
-            <el-button size="small" type="primary" plain @click="goMatch(job.id)">
-              匹配分析
-            </el-button>
-            <el-dropdown
-              trigger="click"
-              data-testid="job-feedback"
-              @command="(cmd: string | number | object) => handleFeedback(cmd, job.id)"
-            >
-              <el-button size="small" class="feedback-button">反馈</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item
-                    v-for="option in FEEDBACK_OPTIONS"
-                    :key="option.value"
-                    :command="option.value"
-                  >
-                    {{ option.label }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-        </el-card>
-      </div>
-
-      <div v-if="total > size" class="pagination-row">
-        <el-pagination
-          data-testid="jobs-pagination"
-          layout="prev, pager, next, total"
-          :total="total"
-          :page-size="size"
-          :current-page="page"
-          @current-change="onPageChange"
-        />
-      </div>
+        <el-empty v-else description="选择左侧岗位查看匹配摘要" :image-size="64" />
+      </aside>
     </div>
 
     <el-drawer v-model="drawerVisible" title="岗位详情" size="480px" data-testid="jobs-drawer">
@@ -328,6 +553,52 @@ onMounted(() => {
           <div class="drawer-meta">
             <span v-if="drawerJob.city">📍 {{ drawerJob.city }}</span>
             <span v-if="drawerJob.salary">💰 {{ drawerJob.salary }}</span>
+          </div>
+
+          <TrustPanel
+            class="drawer-trust"
+            :display-status="drawerJob.displayStatus"
+            :source-type="drawerJob.sourceType"
+            :source-name="drawerJob.sourceName"
+            :published-at="drawerJob.publishedAt"
+            :verified-at="drawerJob.verifiedAt"
+            :valid-until="drawerJob.validUntil"
+            :external-url="drawerJob.externalUrl"
+          />
+
+          <div
+            v-if="userStore.isAdmin && drawerJob.displayStatus !== 'DEMO'"
+            class="drawer-verify"
+            data-testid="jobs-verify-actions"
+          >
+            <span class="cf-eyebrow">管理员核验</span>
+            <div class="drawer-verify__actions">
+              <el-button
+                size="small"
+                type="success"
+                plain
+                :loading="verifyingStatus === 'VERIFIED'"
+                data-testid="jobs-verify-verified"
+                @click="handleVerify('VERIFIED')"
+              >
+                标记已核实
+              </el-button>
+              <el-button
+                size="small"
+                :loading="verifyingStatus === 'EXPIRED'"
+                @click="handleVerify('EXPIRED')"
+              >
+                标记已过期
+              </el-button>
+              <el-button
+                size="small"
+                text
+                :loading="verifyingStatus === 'UNVERIFIED'"
+                @click="handleVerify('UNVERIFIED')"
+              >
+                撤回核实
+              </el-button>
+            </div>
           </div>
 
           <el-divider content-position="left">技能要求</el-divider>
@@ -414,6 +685,66 @@ onMounted(() => {
         </div>
       </div>
     </el-dialog>
+
+    <el-dialog
+      v-model="importVisible"
+      title="导入外部岗位"
+      width="560px"
+      data-testid="jobs-import-dialog"
+    >
+      <p class="import-note">
+        粘贴招聘链接或 JD 文本，系统创建仅自己可见的岗位（待核实）。
+        请勿从招聘平台批量抓取数据，仅导入你已获得的岗位信息。
+      </p>
+      <el-form label-width="88px" label-position="left">
+        <el-form-item label="岗位名称" required>
+          <el-input v-model="importForm.position" data-testid="import-position" placeholder="如 Java 开发实习生" />
+        </el-form-item>
+        <el-form-item label="公司">
+          <el-input v-model="importForm.company" placeholder="如 字节跳动" />
+        </el-form-item>
+        <el-form-item label="城市 / 薪资">
+          <div class="import-inline">
+            <el-input v-model="importForm.city" placeholder="城市" />
+            <el-input v-model="importForm.salary" placeholder="薪资" />
+          </div>
+        </el-form-item>
+        <el-form-item label="招聘链接">
+          <el-input
+            v-model="importForm.externalUrl"
+            data-testid="import-external-url"
+            placeholder="https://..."
+          />
+        </el-form-item>
+        <el-form-item label="来源名称">
+          <el-input v-model="importForm.sourceName" placeholder="如 企业官网 / 用户粘贴，默认用户粘贴" />
+        </el-form-item>
+        <el-form-item label="JD 内容">
+          <el-input
+            v-model="importForm.jdContent"
+            type="textarea"
+            :rows="6"
+            data-testid="import-jd"
+            placeholder="粘贴岗位描述文本"
+          />
+        </el-form-item>
+        <el-form-item label="AI 解析">
+          <el-switch v-model="importForm.parseJd" :disabled="!importForm.jdContent.trim()" />
+          <span class="import-hint">导入后立即解析技能要求</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="importVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="importLoading"
+          data-testid="import-submit"
+          @click="submitImport"
+        >
+          导入岗位
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -454,24 +785,73 @@ onMounted(() => {
   width: 200px;
 }
 
-.jobs-body {
-  min-height: 200px;
-}
-
-.job-grid {
+.jobs-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--cf-space-4);
+  align-items: start;
 }
 
-.job-card-head {
+.jobs-list-pane {
+  min-height: 200px;
+  background: var(--cf-card-bg);
+  border: 1px solid var(--cf-border);
+  border-radius: var(--cf-radius-md);
+  overflow: hidden;
+}
+
+.job-list {
   display: flex;
+  flex-direction: column;
+}
+
+.job-row {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: var(--cf-space-4);
+  padding: var(--cf-space-4);
+  border-bottom: 1px solid var(--cf-border);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.job-row:last-child {
+  border-bottom: none;
+}
+
+.job-row:hover {
+  background: var(--cf-surface-muted);
+}
+
+.job-row--active {
+  background: var(--cf-primary-soft);
+  box-shadow: inset 3px 0 0 var(--cf-primary);
+}
+
+.job-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.job-row-head {
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cf-space-3);
+}
+
+.job-row-actions {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--cf-space-2);
+  flex-shrink: 0;
 }
 
 .job-company {
-  font-size: 13px;
+  margin-top: 2px;
+  font-size: var(--cf-font-sm);
   color: var(--cf-text-secondary);
 }
 
@@ -492,21 +872,22 @@ onMounted(() => {
 }
 
 .job-position {
-  font-size: 16px;
-  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .job-meta {
   display: flex;
-  gap: 14px;
-  margin-top: 10px;
-  font-size: 13px;
+  flex-wrap: wrap;
+  gap: var(--cf-space-3);
+  margin-top: var(--cf-space-2);
+  font-size: var(--cf-font-xs);
   color: var(--cf-text-secondary);
 }
 
 .job-skills {
-  margin-top: 10px;
-  min-height: 24px;
+  margin-top: var(--cf-space-2);
+  min-height: 22px;
 }
 
 .skill-tag {
@@ -515,16 +896,129 @@ onMounted(() => {
 }
 
 .no-skills {
-  font-size: 12px;
+  font-size: var(--cf-font-xs);
   color: var(--cf-text-secondary);
 }
 
-.job-card-actions {
-  margin-top: 12px;
+/* 右侧匹配摘要：随选中岗位更新 */
+.jobs-summary {
+  position: sticky;
+  top: calc(var(--cf-header-height) + var(--cf-space-4));
+  min-height: 240px;
+  padding: var(--cf-space-4);
+  background: var(--cf-card-bg);
+  border: 1px solid var(--cf-border);
+  border-radius: var(--cf-radius-md);
+}
+
+.summary-head {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: var(--cf-space-2);
+}
+
+.summary-position {
+  margin-top: var(--cf-space-3);
+  font-size: var(--cf-font-lg);
+}
+
+.summary-company {
+  margin-top: 2px;
+  font-size: var(--cf-font-sm);
+  color: var(--cf-text-secondary);
+}
+
+.summary-demo {
+  margin-top: var(--cf-space-3);
+  font-size: var(--cf-font-xs);
+  color: var(--cf-warning);
+}
+
+.summary-score {
+  margin-top: var(--cf-space-3);
+  padding: var(--cf-space-3);
+  border-radius: var(--cf-radius-control);
+  background: var(--cf-surface-muted);
+}
+
+.summary-score__row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.summary-score__value {
+  font-size: var(--cf-font-3xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--cf-primary);
+}
+
+.summary-score__unit {
+  font-size: var(--cf-font-xs);
+  color: var(--cf-text-secondary);
+}
+
+.summary-reasons {
+  margin: var(--cf-space-2) 0 0 var(--cf-space-4);
+  padding: 0;
+  font-size: var(--cf-font-xs);
+  line-height: 1.7;
+  color: var(--cf-text-secondary);
+}
+
+.summary-block {
+  margin-top: var(--cf-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cf-space-2);
+}
+
+.summary-trust {
+  margin-top: var(--cf-space-4);
+}
+
+.summary-actions {
+  margin-top: var(--cf-space-4);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cf-space-2);
+}
+
+.summary-link {
+  font-size: var(--cf-font-sm);
+  color: var(--cf-primary);
+}
+
+.summary-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1199px) and (min-width: 1024px) {
+  .jobs-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .jobs-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* 窄屏时摘要下沉到列表下方，保留匹配信息而不是直接隐藏 */
+  .jobs-summary {
+    position: static;
+  }
+
+  .job-row {
+    flex-direction: column;
+  }
+
+  .job-row-actions {
+    justify-content: flex-end;
+  }
 }
 
 .feedback-button {
@@ -645,5 +1139,63 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 700;
   color: var(--cf-primary);
+}
+
+.search-select {
+  width: 140px;
+}
+
+.job-source-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-space-2);
+  margin-top: var(--cf-space-2);
+  min-height: 20px;
+  flex-wrap: wrap;
+}
+
+.demo-hint {
+  font-size: var(--cf-font-xs);
+  color: var(--cf-warning);
+}
+
+.drawer-trust {
+  margin-top: var(--cf-space-4);
+}
+
+.drawer-verify {
+  margin-top: var(--cf-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cf-space-2);
+}
+
+.drawer-verify__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-space-2);
+  flex-wrap: wrap;
+}
+
+.import-note {
+  margin-bottom: var(--cf-space-4);
+  padding: var(--cf-space-3);
+  border-radius: var(--cf-radius-control);
+  background: var(--cf-surface-muted);
+  color: var(--cf-text-secondary);
+  font-size: var(--cf-font-sm);
+  line-height: 1.6;
+}
+
+.import-inline {
+  display: flex;
+  gap: var(--cf-space-2);
+  width: 100%;
+}
+
+.import-hint {
+  margin-left: var(--cf-space-3);
+  font-size: var(--cf-font-xs);
+  color: var(--cf-text-tertiary);
 }
 </style>
