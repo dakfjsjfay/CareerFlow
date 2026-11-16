@@ -15,6 +15,9 @@ public class JobSummaryVO {
 
     private String company;
 
+    /** 关联企业库 id；存量数据可能为空 */
+    private Long companyId;
+
     private String position;
 
     private String city;
@@ -22,6 +25,10 @@ public class JobSummaryVO {
     private String salary;
 
     private String sourceType;
+
+    private String recruitmentBatch;
+
+    private String recruitmentStatus;
 
     private Integer requirementCount;
 

@@ -102,6 +102,38 @@ function goMatch(jobId: number): void {
   router.push(`/match/${jobId}`)
 }
 
+function goCompany(companyId: number | null): void {
+  if (companyId) {
+    router.push(`/companies/${companyId}`)
+  }
+}
+
+function sourceLabel(sourceType: string): string {
+  if (sourceType === 'MOCK') return '内置'
+  if (sourceType === 'OFFICIAL') return '官方'
+  if (sourceType === 'PLATFORM') return '平台'
+  return '手动'
+}
+
+function sourceTagType(sourceType: string): 'info' | 'success' | 'warning' | 'primary' {
+  if (sourceType === 'MOCK') return 'info'
+  if (sourceType === 'OFFICIAL') return 'success'
+  if (sourceType === 'PLATFORM') return 'warning'
+  return 'info'
+}
+
+function statusLabel(status: string | null): string {
+  if (status === 'CLOSED') return '已结束'
+  if (status === 'SOON') return '即将开始'
+  return '招聘中'
+}
+
+function statusTagType(status: string | null): 'success' | 'warning' | 'info' {
+  if (status === 'CLOSED') return 'info'
+  if (status === 'SOON') return 'warning'
+  return 'success'
+}
+
 function openExternal(url: string | null): void {
   if (url) {
     window.open(url, '_blank', 'noopener')
@@ -199,12 +231,31 @@ onMounted(() => {
         >
           <div class="job-card-head">
             <div>
-              <p class="job-company">{{ job.company || '未注明公司' }}</p>
+              <p
+                class="job-company"
+                :class="{ 'job-company--link': job.companyId }"
+                @click="goCompany(job.companyId)"
+              >
+                {{ job.company || '未注明公司' }}
+              </p>
               <h3 class="job-position">{{ job.position }}</h3>
             </div>
-            <el-tag size="small" :type="job.sourceType === 'MOCK' ? 'info' : 'warning'">
-              {{ job.sourceType === 'MOCK' ? '内置' : '手动' }}
-            </el-tag>
+            <div class="job-tag-group">
+              <el-tag size="small" :type="sourceTagType(job.sourceType)">
+                {{ sourceLabel(job.sourceType) }}
+              </el-tag>
+              <el-tag v-if="job.recruitmentBatch" size="small" effect="plain">
+                {{ job.recruitmentBatch }}
+              </el-tag>
+              <el-tag
+                v-if="job.recruitmentStatus"
+                size="small"
+                :type="statusTagType(job.recruitmentStatus)"
+                effect="plain"
+              >
+                {{ statusLabel(job.recruitmentStatus) }}
+              </el-tag>
+            </div>
           </div>
 
           <div class="job-meta">
@@ -422,6 +473,22 @@ onMounted(() => {
 .job-company {
   font-size: 13px;
   color: var(--cf-text-secondary);
+}
+
+.job-company--link {
+  cursor: pointer;
+  color: var(--cf-primary);
+}
+
+.job-company--link:hover {
+  text-decoration: underline;
+}
+
+.job-tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .job-position {

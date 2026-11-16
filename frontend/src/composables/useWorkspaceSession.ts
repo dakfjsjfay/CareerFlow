@@ -2,11 +2,13 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { listJobs, type JobSummary } from '@/api/jobs'
 import {
   analyzeSection,
   chatSection,
   confirmEdit,
   createDraft,
+  listDraftEditHistory,
   rejectEdit,
   rewriteSection,
   type EditHistoryItem,
@@ -34,6 +36,7 @@ import {
 } from '@/utils/resumeWizard'
 
 import { computeGuide, guideProgress, guideText } from './useWorkspaceGuide'
+import { buildSectionStatuses } from './useWorkspaceSectionStatus'
 
 export type WorkspaceMode = 'CREATE' | 'EDIT'
 
@@ -46,9 +49,76 @@ export interface WorkspaceMessage {
   sectionKey?: WorkspaceSectionKey
   candidate?: EditHistoryItem
   analysis?: SectionAnalysis
+  /** 生成该候选时使用的指令，用于「重新生成」 */
+  instruction?: string
   applied?: boolean
   rejected?: boolean
 }
+
+export type WorkspaceActionId =
+  | 'POLISH'
+  | 'STAR'
+  | 'QUANTIFY'
+  | 'KEYWORDS'
+  | 'CONCISE'
+  | 'JOB_FIT'
+  | 'FACT_CHECK'
+
+export interface WorkspaceAction {
+  id: WorkspaceActionId
+  label: string
+  kind: 'rewrite' | 'analyze'
+  instruction?: string
+  focus?: string
+  requiresJob?: boolean
+}
+
+/** 区块级快捷操作，全部复用现有 analyze / rewrite 接口。 */
+export const WORKSPACE_ACTIONS: WorkspaceAction[] = [
+  {
+    id: 'POLISH',
+    label: '一键润色',
+    kind: 'rewrite',
+    instruction: '在不编造事实的前提下，用更专业、结果导向的表达润色该区块，保持事实不变。',
+  },
+  {
+    id: 'STAR',
+    label: 'STAR 结构化',
+    kind: 'rewrite',
+    instruction: '请按 STAR（情境/任务/行动/结果）结构重写该区块，只使用已有事实，不要编造数据。',
+  },
+  {
+    id: 'QUANTIFY',
+    label: '量化成果建议',
+    kind: 'rewrite',
+    instruction: '在不编造数据的前提下，把已有成果改成更具体、可量化的表达；没有数据的地方保持原样。',
+  },
+  {
+    id: 'KEYWORDS',
+    label: '关键词优化',
+    kind: 'rewrite',
+    instruction: '结合目标岗位补充相关的专业关键词，保持原有事实不变。',
+  },
+  {
+    id: 'CONCISE',
+    label: '语句精简',
+    kind: 'rewrite',
+    instruction: '在保留全部关键事实的前提下精简表达，压缩到原长度约 70%。',
+  },
+  {
+    id: 'JOB_FIT',
+    label: '岗位适配分析',
+    kind: 'analyze',
+    focus: '岗位适配',
+    requiresJob: true,
+  },
+  {
+    id: 'FACT_CHECK',
+    label: '事实与证据检查',
+    kind: 'analyze',
+    focus: '事实与证据',
+  },
+]
 
 interface UndoEntry {
   sectionKey: string
@@ -118,6 +188,12 @@ export function useWorkspaceSession() {
   const activeVersionId = ref<number | null>(null)
   const formOpen = ref(true)
   const lastApplied = ref('')
+  const jobId = ref<number | null>(null)
+  const jobOptions = ref<JobSummary[]>([])
+  const jobLoading = ref(false)
+  const analyses = ref<Partial<Record<WorkspaceSectionKey, SectionAnalysis>>>({})
+  const editHistory = ref<EditHistoryItem[]>([])
+  const historyLoading = ref(false)
 
   let guideTimer: ReturnType<typeof setTimeout> | null = null
   let lastGuideStep = 0
@@ -129,6 +205,25 @@ export function useWorkspaceSession() {
   const previewContent = computed(() => draftContentToPreview(store.content))
   const previewEmpty = computed(() => isDraftEmpty(store.content))
   const canUndo = computed(() => undoStack.value.length > 0)
+  const sectionNavItems = computed(() => buildSectionStatuses(store.content, analyses.value))
+  /** 最新一条待确认候选，供中间栏内联对比展示 */
+  const pendingCandidateMessage = computed<WorkspaceMessage | null>(() => {
+    for (let index = messages.value.length - 1; index >= 0; index -= 1) {
+      const item = messages.value[index]
+      if (item.kind === 'candidate' && item.candidate && !item.applied && !item.rejected) {
+        return item
+      }
+    }
+    return null
+  })
+  const pendingCandidate = computed(() => pendingCandidateMessage.value?.candidate ?? null)
+  const jobLabel = computed(() => {
+    const job = jobOptions.value.find((item) => item.id === jobId.value)
+    if (!job) {
+      return ''
+    }
+    return job.company ? `${job.position} · ${job.company}` : job.position
+  })
   const draftName = computed({
     get: () => store.draftName,
     set: (value: string) => {
@@ -162,7 +257,15 @@ export function useWorkspaceSession() {
   function resetConversation(): void {
     messages.value = []
     undoStack.value = []
+    analyses.value = {}
     lastGuideStep = 0
+  }
+
+  /** 区块内容变化后，旧的诊断结果不再可信，清掉避免误导。 */
+  function clearAnalysis(key: string): void {
+    const next = { ...analyses.value }
+    delete next[key as WorkspaceSectionKey]
+    analyses.value = next
   }
 
   function greet(): void {
@@ -186,7 +289,7 @@ export function useWorkspaceSession() {
       return
     }
     pushAi(
-      `已加载「${resumeName.value || '当前简历'}」。在右侧点击任意区块，或直接在下方描述你的修改要求，我会先生成候选，确认后才会写入简历。`,
+      `已加载「${resumeName.value || '当前简历'}」。在中间预览里点击任意区块，或直接使用右侧快捷操作，我会先生成候选，确认后才会写入简历。`,
       'text',
     )
   }
@@ -226,6 +329,42 @@ export function useWorkspaceSession() {
       versions.value = (await listResumeVersions(id)).data
     } catch {
       versions.value = []
+    }
+  }
+
+  /** 关联岗位候选列表，供右栏岗位选择器使用。 */
+  async function loadJobs(): Promise<void> {
+    if (jobOptions.value.length > 0 || jobLoading.value) {
+      return
+    }
+    jobLoading.value = true
+    try {
+      const result = await listJobs({ page: 1, size: 50 })
+      jobOptions.value = result.data.items ?? []
+    } catch {
+      jobOptions.value = []
+    } finally {
+      jobLoading.value = false
+    }
+  }
+
+  function selectJob(id: number | null): void {
+    jobId.value = id
+  }
+
+  /** 操作记录只读展示，来自后端 resume_edit_history。 */
+  async function loadEditHistory(): Promise<void> {
+    if (store.draftId == null) {
+      editHistory.value = []
+      return
+    }
+    historyLoading.value = true
+    try {
+      editHistory.value = (await listDraftEditHistory(store.draftId)).data ?? []
+    } catch {
+      editHistory.value = []
+    } finally {
+      historyLoading.value = false
     }
   }
 
@@ -300,6 +439,7 @@ export function useWorkspaceSession() {
         const param = Number(route.params.resumeId ?? '')
         if (route.name === 'WorkspaceEdit' && param) {
           await bootEdit(param)
+          await Promise.all([loadJobs(), loadEditHistory()])
         } else {
           mode.value = 'CREATE'
           resumeId.value = null
@@ -380,11 +520,14 @@ export function useWorkspaceSession() {
     return key === 'JOB_INTENTION' ? 'BASIC' : key
   }
 
-  async function requestRewrite(instruction: string): Promise<void> {
+  async function requestRewrite(
+    instruction: string,
+    target?: WorkspaceSectionKey,
+  ): Promise<void> {
     if (store.draftId == null) {
       return
     }
-    const section = activeSection.value
+    const section = target ?? activeSection.value
     if (!REWRITE_SECTIONS.includes(section)) {
       pushAi(
         `「${SECTION_LABELS[section]}」暂不支持 AI 自动改写，请在左侧表单里直接调整，或切换到其他区块。`,
@@ -394,12 +537,16 @@ export function useWorkspaceSession() {
     }
     sending.value = true
     try {
-      const result = await rewriteSection(store.draftId, apiSection(section), { instruction })
+      const result = await rewriteSection(store.draftId, apiSection(section), {
+        instruction,
+        jobId: jobId.value,
+      })
       pushAi(
         `已生成「${SECTION_LABELS[section]}」修改候选。AI 只产出候选，确认后才会写入简历。`,
         'candidate',
-        { candidate: result.data, sectionKey: section },
+        { candidate: result.data, sectionKey: section, instruction },
       )
+      await loadEditHistory()
     } catch (error) {
       pushAi(`AI 修改失败：${describeError(error, '请稍后重试')}`, 'error')
     } finally {
@@ -450,23 +597,69 @@ export function useWorkspaceSession() {
     }
   }
 
-  async function analyzeCurrentSection(): Promise<void> {
+  async function analyzeSectionByKey(
+    key: WorkspaceSectionKey = activeSection.value,
+    focus?: string,
+  ): Promise<void> {
     if (store.draftId == null || sending.value) {
       return
     }
     sending.value = true
-    const section = activeSection.value
     try {
-      const result = await analyzeSection(store.draftId, apiSection(section), {})
-      pushAi(`「${SECTION_LABELS[section]}」诊断完成：`, 'analysis', {
+      const result = await analyzeSection(store.draftId, apiSection(key), {
+        focus,
+        jobId: jobId.value,
+      })
+      analyses.value = { ...analyses.value, [key]: result.data }
+      pushAi(`「${SECTION_LABELS[key]}」诊断完成：`, 'analysis', {
         analysis: result.data,
-        sectionKey: section,
+        sectionKey: key,
       })
     } catch (error) {
       pushAi(`区块诊断失败：${describeError(error, '请稍后重试')}`, 'error')
     } finally {
       sending.value = false
     }
+  }
+
+  async function analyzeCurrentSection(): Promise<void> {
+    await analyzeSectionByKey(activeSection.value)
+  }
+
+  /** 右栏快捷操作统一入口：改写类产出候选，分析类只诊断。 */
+  async function runAction(id: WorkspaceActionId): Promise<void> {
+    const action = WORKSPACE_ACTIONS.find((item) => item.id === id)
+    if (!action) {
+      return
+    }
+    if (action.requiresJob && jobId.value == null) {
+      ElMessage.warning('请先在右栏选择关联岗位，再进行岗位适配分析')
+      return
+    }
+    if (action.kind === 'analyze') {
+      await analyzeSectionByKey(activeSection.value, action.focus)
+      return
+    }
+    await requestRewrite(action.instruction ?? '', activeSection.value)
+  }
+
+  /** 用同一指令重新生成当前候选；旧候选标记为拒绝，避免多条待确认。 */
+  async function regenerateCandidate(): Promise<void> {
+    const message = pendingCandidateMessage.value
+    if (!message?.candidate) {
+      return
+    }
+    const section = (message.sectionKey ?? activeSection.value) as WorkspaceSectionKey
+    const instruction =
+      message.instruction ?? WORKSPACE_ACTIONS[0].instruction ?? '请润色该区块'
+    try {
+      await rejectEdit(message.candidate.id)
+      message.rejected = true
+    } catch {
+      // 旧候选可能已被处理，忽略后继续生成新候选
+    }
+    activeSection.value = section
+    await requestRewrite(instruction, section)
   }
 
   async function applyCandidate(
@@ -481,6 +674,7 @@ export function useWorkspaceSession() {
     try {
       await confirmEdit(candidate.id, finalContent)
       await store.refreshAfterApply()
+      clearAnalysis(candidate.sectionKey)
       undoStack.value.push({
         sectionKey: candidate.sectionKey,
         before: candidate.beforeContent,
@@ -488,7 +682,8 @@ export function useWorkspaceSession() {
       })
       message.applied = true
       lastApplied.value = `已应用到「${SECTION_LABELS[candidate.sectionKey] ?? candidate.sectionKey}」`
-      pushAi('修改已写入简历草稿，右侧预览已同步更新。如需回退，可点击顶部「撤销上一步」。', 'text')
+      pushAi('修改已写入简历草稿，中间预览已同步更新。如需回退，可点击顶部「撤销上一步」。', 'text')
+      await loadEditHistory()
       ElMessage.success('修改已应用')
     } catch (error) {
       pushAi(`应用修改失败：${describeError(error, '请稍后重试')}`, 'error')
@@ -506,6 +701,7 @@ export function useWorkspaceSession() {
       await rejectEdit(candidate.id)
       message.rejected = true
       pushAi('已拒绝本次修改，简历保持原样。', 'text')
+      await loadEditHistory()
     } catch (error) {
       pushAi(`拒绝修改失败：${describeError(error, '请稍后重试')}`, 'error')
     }
@@ -518,8 +714,9 @@ export function useWorkspaceSession() {
     }
     store.content = applySectionToDraftContent(store.content, entry.sectionKey, entry.before)
     store.touch()
+    clearAnalysis(entry.sectionKey)
     lastApplied.value = `已撤销「${entry.label}」`
-    pushAi(`已撤销对「${entry.label}」的修改，右侧预览已恢复为修改前内容。`, 'text')
+    pushAi(`已撤销对「${entry.label}」的修改，预览已恢复为修改前内容。`, 'text')
     ElMessage.success('已撤销上一步修改')
   }
 
@@ -563,6 +760,7 @@ export function useWorkspaceSession() {
       ready.value = false
       await guardedHydrate(() => bootEdit(result.resumeId))
       ready.value = true
+      await loadEditHistory()
     } catch (error) {
       ElMessage.error(describeError(error, '生成简历失败，请稍后重试'))
       pushAi(`生成失败：${describeError(error, '请稍后重试')}`, 'error')
@@ -613,6 +811,7 @@ export function useWorkspaceSession() {
       await guardedHydrate(async () => {
         await bridgeFromVersion(versionId)
       })
+      await loadEditHistory()
       pushAi(`已切换到 v${versions.value.find((item) => item.versionId === versionId)?.versionNumber ?? ''}，可以继续修改。`, 'text')
     } catch (error) {
       ElMessage.error(describeError(error, '版本切换失败'))
@@ -653,6 +852,18 @@ export function useWorkspaceSession() {
     previewContent,
     previewEmpty,
     draftName,
+    jobId,
+    jobOptions,
+    jobLoading,
+    jobLabel,
+    sectionNavItems,
+    pendingCandidate,
+    pendingCandidateMessage,
+    editHistory,
+    historyLoading,
+    loadJobs,
+    selectJob,
+    loadEditHistory,
     boot,
     retryBoot: boot,
     selectSection,
@@ -662,6 +873,9 @@ export function useWorkspaceSession() {
     send,
     rewriteActiveSection,
     analyzeCurrentSection,
+    analyzeSectionByKey,
+    runAction,
+    regenerateCandidate,
     applyCandidate,
     rejectCandidate,
     undoLast,

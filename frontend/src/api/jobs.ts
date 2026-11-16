@@ -10,10 +10,15 @@ export interface JobRequirement {
 export interface JobSummary {
   id: number
   company: string | null
+  companyId: number | null
   position: string
   city: string | null
   salary: string | null
   sourceType: string
+  /** 招聘批次：秋招 / 春招 / 实习 / 社招 */
+  recruitmentBatch: string | null
+  /** 招聘状态：OPEN / CLOSED / SOON */
+  recruitmentStatus: string | null
   requirementCount: number
   topSkills: string[]
 }
@@ -43,6 +48,9 @@ export interface JobListParams {
   keyword?: string
   city?: string
   salary?: string
+  companyId?: number
+  recruitmentBatch?: string
+  recruitmentStatus?: string
 }
 
 export interface CreateJobPayload {

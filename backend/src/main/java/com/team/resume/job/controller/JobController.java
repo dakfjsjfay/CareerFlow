@@ -45,8 +45,12 @@ public class JobController {
             @RequestParam(defaultValue = "10") long size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String city,
-            @RequestParam(required = false) String salary) {
+            @RequestParam(required = false) String salary,
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) String recruitmentBatch,
+            @RequestParam(required = false) String recruitmentStatus) {
         return Result.ok(jobService.list(page, size, keyword, city, salary,
+                companyId, recruitmentBatch, recruitmentStatus,
                 currentUserId(authentication), isAdmin(authentication)));
     }
 

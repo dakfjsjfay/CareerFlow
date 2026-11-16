@@ -36,8 +36,14 @@ public class Job {
 
     private String jdContent;
 
-    /** MOCK（内置模拟）/ MANUAL（手动录入） */
+    /** MOCK（内置模拟）/ MANUAL（手动录入）/ OFFICIAL / PLATFORM */
     private String sourceType;
+
+    /** 招聘批次：秋招 / 春招 / 实习 / 社招 */
+    private String recruitmentBatch;
+
+    /** 招聘状态：OPEN / CLOSED / SOON */
+    private String recruitmentStatus;
 
     /** 创建者用户 ID；系统/种子数据为空 */
     private Long createdBy;

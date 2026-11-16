@@ -591,8 +591,59 @@ AI 输出**不直接写草稿**：先落 `resume_edit_history(PENDING)`，用户
 | keyword | string | 否 | 关键词，模糊匹配 position、company |
 | city | string | 否 | 城市精确匹配 |
 | salary | string | 否 | 薪资关键字模糊匹配（salary 为文本，见 database.md 已知限制） |
+| companyId | long | 否 | ⭐ 阶段 3：按企业库 company 关联筛选 |
+| recruitmentBatch | string | 否 | ⭐ 阶段 3：招聘批次（秋招/春招/实习/社招） |
+| recruitmentStatus | string | 否 | ⭐ 阶段 3：招聘状态（OPEN/CLOSED/SOON） |
 
-示例：`GET /api/jobs?page=1&size=10&keyword=Java&city=深圳`
+示例：`GET /api/jobs?page=1&size=10&keyword=Java&city=深圳&companyId=12&recruitmentBatch=秋招`
+
+### 8.2 企业信息库（companies，阶段 3 新增）
+
+| 接口 | 方法 | 说明 |
+|---|---|---|
+| /api/companies | GET | 企业列表（分页 + keyword/industry/city/verificationStatus 筛选），仅返回 `status='ACTIVE'` |
+| /api/companies/{id} | GET | 企业详情（含当前用户可见的关联岗位数 `jobCount`） |
+| /api/companies/{id}/jobs | GET | 企业关联岗位，复用岗位可见性规则，分页参数 page/size |
+| /api/companies/{id}/platform-links | GET | 第三方招聘平台搜索入口（BOSS直聘/智联招聘/前程无忧/拉勾/实习僧/牛客） |
+| /api/companies/{id}/verify | POST | 标记链接核验状态，仅 ADMIN；`status=VERIFIED/PENDING/EXPIRED` |
+
+列表筛选参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| page / size | int | 否 | 分页，默认 1/10，size 上限 50 |
+| keyword | string | 否 | 模糊匹配企业全称 / 简称 |
+| industry | string | 否 | 行业精确匹配 |
+| city | string | 否 | 总部城市精确匹配 |
+| verificationStatus | string | 否 | VERIFIED 已核实 / PENDING 待核实 / EXPIRED 链接已过期 |
+
+企业详情返回示例：
+
+```json
+{
+  "id": 1, "name": "阿里巴巴集团", "shortName": "阿里", "industry": "互联网",
+  "companyType": "民企", "scale": "5000人以上", "city": "杭州",
+  "website": "https://www.alibabagroup.com",
+  "recruitmentUrl": "https://talent.alibaba.com",
+  "campusRecruitUrl": "https://talent.alibaba.com/campus",
+  "internRecruitUrl": "https://talent.alibaba.com/intern",
+  "socialRecruitUrl": "https://talent.alibaba.com/social",
+  "source": "SEED", "verificationStatus": "PENDING", "lastVerifiedAt": null,
+  "jobCount": 3
+}
+```
+
+平台入口返回示例（`note` 明确说明不代投）：
+
+```json
+[
+  { "key": "BOSS直聘", "label": "BOSS直聘",
+    "url": "https://www.zhipin.com/web/geek/job?query=%E9%98%BF%E9%87%8C",
+    "note": "跳转到该平台的搜索页，需自行在站内投递，CareerFlow 不代投" }
+]
+```
+
+> 平台入口均为外部搜索页 URL，仅做浏览器跳转，**不调用平台接口、不实现自动投递**。
 
 JD 解析请求：
 

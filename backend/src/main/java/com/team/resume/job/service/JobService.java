@@ -53,6 +53,18 @@ public class JobService {
     public PageResult<JobSummaryVO> list(long page, long size, String keyword,
                                          String city, String salary,
                                          long userId, boolean admin) {
+        return list(page, size, keyword, city, salary, null, null, null, userId, admin);
+    }
+
+    /**
+     * 列表分页筛选（企业库/招聘批次扩展）。
+     * companyId、recruitmentBatch、recruitmentStatus 均可选，兼容原有三参数调用。
+     */
+    public PageResult<JobSummaryVO> list(long page, long size, String keyword,
+                                         String city, String salary,
+                                         Long companyId, String recruitmentBatch,
+                                         String recruitmentStatus,
+                                         long userId, boolean admin) {
         long safePage = Math.max(page, 1);
         long safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 
@@ -71,6 +83,15 @@ public class JobService {
         }
         if (salary != null && !salary.isBlank()) {
             wrapper.like(Job::getSalary, salary.trim());
+        }
+        if (companyId != null) {
+            wrapper.eq(Job::getCompanyId, companyId);
+        }
+        if (recruitmentBatch != null && !recruitmentBatch.isBlank()) {
+            wrapper.eq(Job::getRecruitmentBatch, recruitmentBatch.trim());
+        }
+        if (recruitmentStatus != null && !recruitmentStatus.isBlank()) {
+            wrapper.eq(Job::getRecruitmentStatus, recruitmentStatus.trim());
         }
         wrapper.orderByDesc(Job::getId);
 
@@ -171,10 +192,13 @@ public class JobService {
         JobSummaryVO vo = new JobSummaryVO();
         vo.setId(job.getId());
         vo.setCompany(job.getCompany());
+        vo.setCompanyId(job.getCompanyId());
         vo.setPosition(job.getPosition());
         vo.setCity(job.getCity());
         vo.setSalary(job.getSalary());
         vo.setSourceType(job.getSourceType());
+        vo.setRecruitmentBatch(job.getRecruitmentBatch());
+        vo.setRecruitmentStatus(job.getRecruitmentStatus());
         vo.setRequirementCount(requirements.size());
         vo.setTopSkills(requirements.stream()
                 .filter(r -> "REQUIRED".equals(r.getImportance()))
@@ -188,11 +212,14 @@ public class JobService {
         JobDetailVO vo = new JobDetailVO();
         vo.setId(job.getId());
         vo.setCompany(job.getCompany());
+        vo.setCompanyId(job.getCompanyId());
         vo.setPosition(job.getPosition());
         vo.setCity(job.getCity());
         vo.setSalary(job.getSalary());
         vo.setJdContent(job.getJdContent());
         vo.setSourceType(job.getSourceType());
+        vo.setRecruitmentBatch(job.getRecruitmentBatch());
+        vo.setRecruitmentStatus(job.getRecruitmentStatus());
         vo.setExternalUrl(job.getExternalUrl());
         vo.setRequirements(requirements.stream().map(JobRequirementVO::from).toList());
         return vo;

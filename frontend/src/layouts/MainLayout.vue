@@ -8,6 +8,7 @@ import {
   Expand,
   Fold,
   HomeFilled,
+  OfficeBuilding,
   Plus,
   Promotion,
   Suitcase,
@@ -40,9 +41,13 @@ const COLLAPSE_KEY = 'cf.sidebar.collapsed'
 const menuGroups: MenuGroup[] = [
   {
     title: '求职工作台',
+    items: [{ path: '/dashboard', title: '工作台', icon: HomeFilled }],
+  },
+  {
+    title: '招聘',
     items: [
-      { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/jobs', title: '岗位中心', icon: Suitcase },
+      { path: '/companies', title: '企业库', icon: OfficeBuilding },
       { path: '/applications', title: '投递管理', icon: Promotion },
     ],
   },

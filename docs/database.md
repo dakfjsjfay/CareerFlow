@@ -191,7 +191,9 @@ erDiagram
 | city | VARCHAR(100) | 工作城市 |
 | salary | VARCHAR(100) | 薪资（文本，如 "6k-10k"；精确数值过滤是已知限制，见 decision-record） |
 | jd_content | TEXT | 原始 JD 全文 |
-| source_type | VARCHAR(30) | MOCK（内置模拟）/ MANUAL（手动录入） |
+| source_type | VARCHAR(30) | MOCK（内置模拟）/ MANUAL（手动录入）/ OFFICIAL（官方整理）/ PLATFORM（平台录入） |
+| recruitment_batch | VARCHAR(30) NULL | ⭐ 阶段 3 新增：招聘批次（秋招/春招/实习/社招） |
+| recruitment_status | VARCHAR(30) | ⭐ 阶段 3 新增：OPEN 开放 / CLOSED 已结束 / SOON 即将开始，默认 OPEN |
 | created_by | BIGINT NULL | ⭐ 2.0 新增：创建者用户 ID；系统/种子数据为空 |
 | visibility | VARCHAR(20) | ⭐ 2.0 新增：PUBLIC / PRIVATE，默认 PUBLIC |
 | external_url | VARCHAR(500) | 外部招聘页面跳转链接（可空） |
@@ -206,6 +208,30 @@ erDiagram
 | skill | VARCHAR(100) NOT NULL | 技能名（由 JD 解析生成，人工可改） |
 | importance | VARCHAR(30) NOT NULL | REQUIRED（必备）/ PREFERRED（加分） |
 | weight | DECIMAL(6,2) NOT NULL | 权重（用于匹配评分） |
+
+**company 企业信息表**（公共数据，V2_0 建表，V3_0 增量加列）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | BIGINT PK | |
+| name | VARCHAR(200) NOT NULL, UNIQUE uk_name | 企业全称 |
+| short_name | VARCHAR(100) | 简称 / 品牌名，前端展示优先 |
+| industry | VARCHAR(100), INDEX | 行业 |
+| company_type | VARCHAR(50) | 国企/民企/外企/合资 |
+| scale | VARCHAR(50) | 规模区间 |
+| city | VARCHAR(100), INDEX | 总部城市 |
+| website | VARCHAR(500) | 企业官网 |
+| recruitment_url | VARCHAR(500) | 招聘官网（综合入口） |
+| campus_recruit_url | VARCHAR(500) | ⭐ 阶段 3 新增：校招入口 |
+| intern_recruit_url | VARCHAR(500) | ⭐ 阶段 3 新增：实习招聘入口 |
+| social_recruit_url | VARCHAR(500) | ⭐ 阶段 3 新增：社会招聘入口 |
+| logo_url / description | VARCHAR(500) / TEXT | Logo 与简介 |
+| status | VARCHAR(20), INDEX | ACTIVE / INACTIVE，默认 ACTIVE |
+| source | VARCHAR(50) | OFFICIAL（官方整理）/ MIGRATED（历史迁移）/ SEED / ADMIN_IMPORT / MANUAL |
+| source_url | VARCHAR(500) | 信息来源链接 |
+| verification_status | VARCHAR(20), INDEX | ⭐ 阶段 3 新增：VERIFIED / PENDING / EXPIRED |
+| last_verified_at | DATETIME | 最近一次人工核验时间 |
+| created_at / updated_at | DATETIME | |
 
 **match_result 匹配结果表**（⭐ 关联简历版本）
 
@@ -476,4 +502,23 @@ status ∈ {APPLIED, READ, INTERVIEW_INVITED, NO_RESPONSE}
 ```bash
 mysql -u <user> -p ai_resume < database/migration/V2_0__base.sql   # 可重复执行
 mysql -u <user> -p ai_resume < database/migration/V2_0__admin.sql  # 按需提升管理员
+```
+
+### 10.1 阶段 3 增量（迁移脚本 `database/migration/V3_0__company.sql`）
+
+在 V2_0 之后执行，只有加列/加索引，可重复执行：
+
+| 表 | 列 | 说明 |
+|---|---|---|
+| `company` | `campus_recruit_url`、`intern_recruit_url`、`social_recruit_url` | 校招 / 实习 / 社招入口，均为企业官方公开链接 |
+| `company` | `verification_status`（默认 PENDING）+ `idx_verification` | 链接核验状态：VERIFIED / PENDING / EXPIRED |
+| `job` | `company_id`（已存在则跳过）+ `idx_company_id` | 关联企业库；存量数据保持空值，`job.company` 文本兜底 |
+| `job` | `recruitment_batch`、`recruitment_status`（默认 OPEN）+ `idx_batch_status` | 招聘批次与状态，支持列表筛选与过期标记 |
+
+种子数据：`database/migration/V3_0__company_seed.sql`，共 251 家企业（超过 200 家验收线），
+`source='SEED'` 或 `MIGRATED`，`verification_status='PENDING'`，由管理员后续逐条核验。
+
+```bash
+mysql -u <user> -p ai_resume < database/migration/V3_0__company.sql       # 可重复执行
+mysql -u <user> -p ai_resume < database/migration/V3_0__company_seed.sql  # 导入 251 家企业
 ```

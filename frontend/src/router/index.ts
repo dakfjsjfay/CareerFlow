@@ -78,6 +78,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '匹配分析' },
       },
       {
+        path: 'companies',
+        name: 'Companies',
+        component: () => import('@/views/Companies/index.vue'),
+        meta: { title: '企业库' },
+      },
+      {
+        path: 'companies/:id(\\d+)',
+        name: 'CompanyDetail',
+        component: () => import('@/views/Companies/CompanyDetail.vue'),
+        meta: { title: '企业详情' },
+      },
+      {
         path: 'applications',
         name: 'Applications',
         component: () => import('@/views/Applications/index.vue'),

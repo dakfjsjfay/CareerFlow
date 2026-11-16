@@ -13,7 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
         "com.team.resume.resume.mapper", "com.team.resume.resume.draft.mapper",
         "com.team.resume.resume.edit.mapper", "com.team.resume.job.mapper",
         "com.team.resume.matching.mapper", "com.team.resume.optimization.mapper",
-        "com.team.resume.application.mapper"})
+        "com.team.resume.application.mapper", "com.team.resume.company.mapper"})
 public class CareerFlowApplication {
 
     public static void main(String[] args) {
